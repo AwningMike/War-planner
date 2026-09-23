@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>War Diversity Planner</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="War Planner">
+<meta name="theme-color" content="#0c1220">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+:root{
+  --bg:#eef1f6; --panel:#ffffff; --panel-2:#f5f7fb; --line:#d6dce8; --line-strong:#b9c2d4;
+  --ink:#141b2b; --ink-2:#4a5470; --ink-3:#7a849d;
+  --brass:#a8740f; --brass-soft:#f6ead0; --brass-ink:#6d4a05;
+  --ok:#1d7a4f; --ok-soft:#dcf1e6;
+  --bad:#b8213a; --bad-soft:#fbe1e5;
+  --focus:#2d5bd7;
+  --display:"Chakra Petch", "Rajdhani", "Arial Narrow", sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0c1220; --panel:#131b2d; --panel-2:#18223a; --line:#26314b; --line-strong:#35425f;
+    --ink:#e7ebf4; --ink-2:#a9b3ca; --ink-3:#76819c;
+    --brass:#e2b453; --brass-soft:#33280f; --brass-ink:#f1cf85;
+    --ok:#4fc58c; --ok-soft:#10301f;
+    --bad:#ff6b82; --bad-soft:#3a1520;
+    --focus:#7fa2ff;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0c1220; --panel:#131b2d; --panel-2:#18223a; --line:#26314b; --line-strong:#35425f;
+  --ink:#e7ebf4; --ink-2:#a9b3ca; --ink-3:#76819c;
+  --brass:#e2b453; --brass-soft:#33280f; --brass-ink:#f1cf85;
+  --ok:#4fc58c; --ok-soft:#10301f;
+  --bad:#ff6b82; --bad-soft:#3a1520;
+  --focus:#7fa2ff;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
+.eyebrow{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--brass)}
+.muted{color:var(--ink-3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Header */
+header.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+header.top h1{font-size:30px;font-weight:700;line-height:1.1}
+header.top p{margin:6px 0 0;color:var(--ink-2);max-width:60ch}
+.sync{font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.sync.live .dot{background:var(--ok)}
+.sync.local .dot{background:var(--brass)}
+
+/* Score strip */
+.score{display:grid;grid-template-columns:minmax(220px,1.2fr) repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+[hidden]{display:none!important}
+.score > div,.score > button{background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.score > button > span{display:flex}
+.score .total .big{font-family:var(--display);font-size:34px;font-weight:700;line-height:1}
+.score .total .big small{font-size:16px;color:var(--ink-3);font-weight:500}
+.score .lost{font-family:var(--mono);font-size:12px}
+.score .lost.bad{color:var(--bad)} .score .lost.ok{color:var(--ok)}
+.score .bgcell{cursor:pointer;border:0;text-align:left;color:inherit;font:inherit}
+.score .bgcell:hover{background:var(--panel-2)}
+.score .bgcell:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.score .bgcell.active{background:var(--panel-2);box-shadow:inset 0 -3px 0 var(--brass)}
+.bgname{font-family:var(--display);font-weight:600;font-size:15px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.meter{display:block!important;width:100%;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--brass);transition:width .25s}
+.meter.full i{background:var(--ok)}
+.bgstats{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.pill{font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:99px;white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--brass-soft);color:var(--brass-ink)}
+
+/* Layout */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.board{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.board-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.board-head h2{font-size:20px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button.btn{font:500 13px var(--body);padding:7px 12px;border-radius:7px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);cursor:pointer}
+button.btn:hover{background:var(--panel-2)}
+button.btn.primary{background:var(--brass);border-color:var(--brass);color:#1a1204}
+button.btn.primary:hover{filter:brightness(1.06)}
+button.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+button.btn:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+.rows{display:flex;flex-direction:column}
+.colhead,.row{display:grid;grid-template-columns:28px minmax(110px,1.1fr) repeat(5,minmax(0,1fr));gap:6px;align-items:center;padding:6px 12px}
+.colhead{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);padding-top:10px;padding-bottom:4px}
+.row{border-top:1px solid var(--line)}
+.row:nth-child(even){background:var(--panel-2)}
+.num{font-family:var(--mono);font-size:12px;color:var(--ink-3);text-align:right}
+.row input{width:100%;min-width:0;font:13px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.row input.pname{font-weight:600}
+.row input::placeholder{color:var(--ink-3);opacity:.7}
+.cell{position:relative}
+.cell input.dupe{border-color:var(--bad);background:var(--bad-soft);color:var(--bad);font-weight:600}
+.cell input.hit{border-color:var(--brass);box-shadow:0 0 0 2px var(--brass-soft)}
+.cell .flag{position:absolute;top:-6px;right:-4px;font:600 9.5px var(--mono);background:var(--bad);color:#fff;border-radius:4px;padding:0 4px;pointer-events:none}
+.cell input.dupe + .flag{display:block}
+.board-foot{padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--bad)}
+
+/* Mode switch + one-per-member rows */
+.topright{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--panel)}
+.segbtn{font:500 13px var(--body);padding:7px 12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.segbtn + .segbtn{border-left:1px solid var(--line-strong)}
+.segbtn[aria-pressed="true"]{background:var(--brass);color:#1a1204}
+.segbtn:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.rows.one .colhead,.rows.one .row{grid-template-columns:28px minmax(110px,1.2fr) minmax(0,1.4fr) 84px minmax(0,1.2fr)}
+.cell input.nodein{font-family:var(--mono);text-align:center}
+.cell input.clash{border-color:var(--bad);background:var(--bad-soft);color:var(--bad);font-weight:600}
+@media (max-width:640px){
+  .topright{align-items:flex-start}
+  .rows.one .row{grid-template-columns:minmax(0,1fr) 70px}
+  .rows.one .row .pcell{grid-column:1 / -1}
+  .rows.one .row .notecell{grid-column:1 / -1}
+}
+
+/* Side */
+aside{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card h3{font-size:15px;font-weight:600}
+.lookup input{width:100%;font:14px var(--body);padding:8px 10px;border-radius:7px;border:1px solid var(--line-strong);background:var(--panel-2);color:var(--ink)}
+.lookup-res{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.lookup-res .line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.conflicts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.conflicts li{border-left:3px solid var(--bad);padding:4px 0 4px 10px;font-size:13px}
+.conflicts li b{display:block;font-weight:600}
+.conflicts li span{color:var(--ink-2)}
+.rules{font-size:12.5px;color:var(--ink-2);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+textarea.copyfall{width:100%;min-height:140px;font:12px var(--mono);background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+
+@media (max-width:900px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .score{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .score .total{grid-column:1 / -1}
+}
+@media (max-width:640px){
+  .colhead{display:none}
+  .row{grid-template-columns:repeat(5,minmax(0,1fr));padding:10px 12px;row-gap:6px}
+  .row .num{display:none}
+  .row .pcell{grid-column:1 / -1}
+  .row input{padding:6px 5px;font-size:12.5px}
+  header.top h1{font-size:24px}
+  .score{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{font:600 14px var(--display);letter-spacing:.02em;padding:10px 14px;border:0;background:transparent;color:var(--ink-3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brass)}
+.tab:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.tab .count{font:500 11px var(--mono);color:var(--ink-3);margin-left:4px}
+.view{display:flex;flex-direction:column;gap:20px}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3)}
+.txt,.sel{font:14px var(--body);color:var(--ink);background:var(--panel-2);border:1px solid var(--line-strong);border-radius:7px;padding:8px 10px;min-width:0;width:100%}
+.txt:focus-visible,.sel:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.two{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+
+/* Champion picker */
+.picker{position:relative}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 8px 24px rgba(10,16,32,.18);z-index:5;max-height:300px;overflow-y:auto;padding:4px;margin:0;list-style:none}
+.results li{padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.results li[aria-selected="true"],.results li:hover{background:var(--panel-2)}
+.results li .have{font:500 11px var(--mono);color:var(--ok)}
+.results li.custom{color:var(--ink-2);font-style:italic}
+
+/* Roster list */
+.rlist{display:flex;flex-direction:column}
+.rhead,.ritem{display:grid;grid-template-columns:minmax(0,1fr) 44px 86px 128px 76px 36px;gap:8px;align-items:center;padding:8px 16px}
+.rhead{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);padding-top:10px;padding-bottom:4px}
+.ritem{border-top:1px solid var(--line)}
+.ritem:nth-child(even){background:var(--panel-2)}
+.ritem .nm{font-weight:600;overflow-wrap:anywhere}
+.star{font:600 12px var(--mono);color:var(--brass-ink);background:var(--brass-soft);border-radius:5px;padding:2px 6px;text-align:center}
+.ritem .sel,.ritem .txt{padding:6px 8px;font-size:13px;background:var(--panel)}
+.ritem .txt{font-family:var(--mono);text-align:center}
+.xbtn{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink-3);cursor:pointer;font-size:16px;line-height:1}
+.xbtn:hover{color:var(--bad);border-color:var(--bad)}
+.xbtn:focus-visible{outline:2px solid var(--focus)}
+.empty{padding:24px 16px;color:var(--ink-3);text-align:center}
+.mlabel{display:none}
+@media (max-width:640px){
+  .rhead{display:none}
+  .ritem{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 36px;row-gap:6px}
+  .ritem .nm{grid-column:1 / 3}
+  .ritem .star{grid-column:3;justify-self:start}
+  .ritem .xbtn{grid-column:4;grid-row:1}
+  .ritem .mlabel{display:block;font:500 10px var(--mono);color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+  .two{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Alliance rosters */
+.members{display:flex;flex-direction:column}
+.member{border-top:1px solid var(--line);padding:12px 16px;display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr) auto;gap:12px;align-items:start}
+.member:first-child{border-top:0}
+.member .who b{display:block;font-size:14px}
+.member .who span{font:12px var(--mono);color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 7px;white-space:nowrap}
+.chip small{font-family:var(--mono);color:var(--ink-3);margin-left:4px}
+.chip.hit{border-color:var(--brass);background:var(--brass-soft)}
+@media (max-width:640px){.member{grid-template-columns:minmax(0,1fr) auto}.member .chips{grid-column:1 / -1;grid-row:2}}
+.owners{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.owners .line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cell .flag.own{background:var(--brass);color:#1a1204}
+.cell input.notown{border-color:var(--brass)}
+.note{font-size:12.5px;color:var(--ink-2);margin:0}
+
+/* Screenshot reader */
+.drop{position:relative;display:block;border:1.5px dashed var(--line-strong);border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:var(--ink-2);font-size:13px;background:var(--panel-2)}
+.drop.over{border-color:var(--brass);background:var(--brass-soft)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.thumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.rhead.rv,.ritem.rv{grid-template-columns:minmax(0,1fr) 44px 86px 128px 76px 0}
+.ritem.rv.low{box-shadow:inset 3px 0 0 var(--brass)}
+.ritem .nmin{font-family:var(--body);text-align:left;font-weight:600}
+.rvnote{font-size:11.5px;color:var(--brass-ink);margin-top:3px}
+.usebox{display:flex;justify-content:center}
+.usebox input{width:18px;height:18px;accent-color:var(--brass)}
+#review{margin-bottom:0}
+@media (max-width:640px){
+  .ritem.rv{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 36px}
+  .ritem.rv > div:first-child{grid-column:1 / 4}
+  .ritem.rv .usebox{grid-column:4;grid-row:1}
+}
+button.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+
+/* Tap-to-assign */
+.chip.pickable{font:inherit;font-size:12px;color:var(--ink);cursor:pointer}
+.chip.pickable:hover{border-color:var(--brass)}
+.chip.pickable:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.chip.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:600}
+.chip.on small{color:var(--ok)}
+.warbar{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.warstrip{display:flex;gap:6px;flex-wrap:wrap}
+.ws{font:12px var(--mono);padding:2px 8px;border-radius:99px;background:var(--brass-soft);color:var(--brass-ink)}
+.ws.ok{background:var(--ok-soft);color:var(--ok)}
+.ws.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.on.dupe{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.chip.on.dupe small{color:var(--bad)}
+
+/* Collapsible members */
+details.member{display:block;border-top:1px solid var(--line);padding:0}
+details.member:first-child{border-top:0}
+details.member > summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px}
+details.member > summary::-webkit-details-marker{display:none}
+details.member > summary:hover{background:var(--panel-2)}
+details.member > summary:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+details.member .who{display:flex;flex-direction:column;min-width:0}
+details.member .who b{font-size:14px}
+details.member .who span{font:12px var(--mono);color:var(--ink-3)}
+.sumright{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+.onwar{font-size:12px;color:var(--ok);font-weight:600;overflow-wrap:anywhere}
+.chev{color:var(--ink-3);transition:transform .15s;font-size:14px}
+details.member[open] .chev{transform:rotate(180deg)}
+details.member[open] > summary{background:var(--panel-2)}
+details.member.match{box-shadow:inset 3px 0 0 var(--brass)}
+.mbody{padding:4px 16px 14px;display:flex;flex-direction:column;gap:12px}
+.mtools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.bgpick{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.bgpick .sel{width:auto;padding:5px 8px;font-size:13px}
+
+/* Roster filters + class dots */
+.filters{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;padding:14px 16px;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.filters .fwho{grid-column:1 / -1}#fClear{grid-column:1 / -1;justify-self:start}}
+.cdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--ink-3)}
+.c-cosmic{background:#1fb5c9}.c-tech{background:#3b6fe0}.c-mutant{background:#e0b020}.c-skill{background:#d8383a}.c-science{background:#3fae4a}.c-mystic{background:#9a4fd1}
+.mcount{font:600 12px var(--mono);color:var(--brass-ink);background:var(--brass-soft);border-radius:99px;padding:2px 8px}
+
+/* Edit champs + backup */
+.ritem.ed{padding:8px 0}
+.mbody .rlist{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.mbody .ritem.ed{padding:8px 12px}
+.edhint{font-size:12px;color:var(--ink-3)}
+.addrow{display:flex;gap:8px}
+.addrow .txt{flex:1}
+.mtools .actions{display:flex;gap:8px;flex-wrap:wrap}
+.cloud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.cloud{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Alliance War · Defense placement</div>
+      <h1>War Diversity Planner</h1>
+      <p id="intro"></p>
+    </div>
+    <div class="topright">
+      <div class="seg" role="group" aria-label="War format" id="segWrap">
+        <button type="button" class="segbtn" data-mode="five" id="modeFive">5 per member</button>
+        <button type="button" class="segbtn" data-mode="one" id="modeOne">1 per member + node</button>
+      </div>
+      <div class="cloud"><div class="sync local" id="sync"><span class="dot"></span><span id="cloudText">Checking save…</span></div><button class="btn primary" id="cloudSave" type="button" hidden>Save now</button></div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-plan" data-view="plan" type="button">War plan</button>
+    <button class="tab" role="tab" id="tab-mine" data-view="mine" type="button">My roster <span class="count" id="mineCount"></span></button>
+    <button class="tab" role="tab" id="tab-all" data-view="all" type="button">Alliance rosters <span class="count" id="allCount"></span></button>
+  </nav>
+
+  <!-- ============ WAR PLAN ============ -->
+  <div class="view" id="view-plan" role="tabpanel" aria-labelledby="tab-plan">
+    <section class="score" aria-label="Diversity score">
+      <div class="total">
+        <span class="eyebrow">Alliance diversity</span>
+        <div class="big mono" id="totalPts">0</div>
+        <div class="lost" id="totalLost"></div>
+      </div>
+      <button class="bgcell" data-bg="1" type="button"></button>
+      <button class="bgcell" data-bg="2" type="button"></button>
+      <button class="bgcell" data-bg="3" type="button"></button>
+    </section>
+
+    <div class="main">
+      <section class="board">
+        <div class="board-head">
+          <div>
+            <h2 id="boardTitle">Battlegroup 1</h2>
+            <div class="muted" style="font-size:12.5px" id="boardSub"></div>
+          </div>
+          <div class="actions" id="actions">
+            <button class="btn primary" id="copyBtn" type="button">Copy BG for LINE</button>
+            <button class="btn" id="copyAllBtn" type="button">Copy all BGs</button>
+            <button class="btn" id="fillBtn" type="button">Add members from rosters</button>
+            <button class="btn danger" id="clearBtn" type="button">Clear BG</button>
+          </div>
+        </div>
+        <div class="rows" id="rows"></div>
+        <div class="board-foot">
+          <span>Pick a member from their roster and the defender box suggests only champs they own.</span>
+          <span id="editNote">Share with the plan code — no account needed.</span>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card lookup">
+          <h3>Is this champ taken?</h3>
+          <input id="lookup" class="txt" type="text" list="champList" placeholder="Type a champion…" autocomplete="off">
+          <div class="lookup-res" id="lookupRes"></div>
+        </div>
+        <div class="card">
+          <h3 id="conflictTitle">Problems in BG 1</h3>
+          <ul class="conflicts" id="conflicts"></ul>
+        </div>
+        <div class="card share">
+          <h3>Share the plan</h3>
+          <p class="note">Your plan saves in this browser. To hand it to another officer, copy the plan code and send it in LINE; they paste it in here to load all three BGs.</p>
+          <div class="actions">
+            <button class="btn primary" id="shareBtn" type="button">Copy plan code</button>
+            <button class="btn" id="loadBtn" type="button">Load a plan code</button>
+          </div>
+          <div id="loadBox" hidden style="display:flex;flex-direction:column;gap:8px">
+            <label for="loadText" class="muted" style="font-size:12px">Paste a plan code (starts with WDP)</label>
+            <textarea class="copyfall" id="loadText" style="min-height:80px" spellcheck="false"></textarea>
+            <div class="actions">
+              <button class="btn primary" id="loadGo" type="button">Replace my plan with this</button>
+              <button class="btn" id="loadCancel" type="button">Cancel</button>
+            </div>
+            <span id="loadErr" style="color:var(--bad);font-size:12.5px"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>How diversity scores</h3>
+          <ul class="rules">
+            <li>30 points per unique defender, counted per battlegroup.</li>
+            <li id="ruleMax"></li>
+            <li>The same champ in different BGs is fine.</li>
+            <li>Different rarities of one champ still count as a duplicate.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ============ MY ROSTER ============ -->
+  <div class="view" id="view-mine" role="tabpanel" aria-labelledby="tab-mine" hidden>
+    <div class="main">
+      <section class="board">
+        <div class="board-head">
+          <div>
+            <h2>My 7★ roster</h2>
+            <div class="muted" style="font-size:12.5px" id="mineSub"></div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="mineCopy" type="button">Copy my roster code</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)">
+          <div class="two">
+            <div class="field"><label for="mineName">Your in-game name</label><input class="txt" id="mineName" autocomplete="off" placeholder="As it shows in the alliance"></div>
+            <div class="field"><label for="mineBg">Battlegroup</label>
+              <select class="sel" id="mineBg"><option value="">Not sure</option><option value="1">BG 1</option><option value="2">BG 2</option><option value="3">BG 3</option></select></div>
+          </div>
+          <div class="field picker">
+            <label for="pick">Add a champion</label>
+            <input class="txt" id="pick" autocomplete="off" placeholder="Search — e.g. serp, doom, hulk" role="combobox" aria-expanded="false" aria-controls="pickList" aria-autocomplete="list">
+            <ul class="results" id="pickList" role="listbox" hidden></ul>
+          </div>
+        </div>
+        <div class="rlist" id="mineList"></div>
+      </section>
+      <aside>
+        <div class="card">
+          <h3>How to send it</h3>
+          <ul class="rules">
+            <li>Add your best defenders — every champ here is 7★.</li>
+            <li>Set rank and signature level for each. Ascension starts at “Not ascended” — change it only for ascended champs.</li>
+            <li>Tap <b>Copy my roster code</b> and paste it in the alliance LINE group.</li>
+            <li>Your list stays saved in this browser, so update it and re-send any time.</li>
+          </ul>
+        </div>
+        <div class="card" id="mineCodeCard" hidden>
+          <h3>Your roster code</h3>
+          <p class="note">Copying was blocked here — select this text and copy it yourself.</p>
+          <textarea class="copyfall" id="mineCodeText" readonly></textarea>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ============ ALLIANCE ROSTERS ============ -->
+  <div class="view" id="view-all" role="tabpanel" aria-labelledby="tab-all" hidden>
+    <div class="main">
+      <section class="board">
+        <div class="board-head">
+          <div>
+            <h2>Alliance rosters</h2>
+            <div class="muted" style="font-size:12.5px" id="allSub"></div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="allWarCopy" type="button">Copy war plan for LINE</button>
+            <button class="btn" id="allCopy" type="button">Copy all rosters</button>
+          </div>
+        </div>
+        <div class="warbar"><span class="note"><b>Tap a champion</b> to put it on war for that member. Tap again to take it off.</span><span class="warstrip" id="warStrip"></span></div>
+        <div class="filters">
+          <div class="field fwho"><label for="allFilter">Who has…</label>
+            <input class="txt" id="allFilter" list="champList" placeholder="Type a champion to see who owns it" autocomplete="off"></div>
+          <div class="field"><label for="fClass">Class</label>
+            <select class="sel" id="fClass"><option value="">All classes</option><option>Cosmic</option><option>Tech</option><option>Mutant</option><option>Skill</option><option>Science</option><option>Mystic</option><option value="Unknown">Not listed</option></select></div>
+          <div class="field"><label for="fRank">Rank</label>
+            <select class="sel" id="fRank"><option value="">All ranks</option><option value="5">Rank 5</option><option value="4">Rank 4</option></select></div>
+          <div class="field"><label for="fAsc">Ascension</label>
+            <select class="sel" id="fAsc"><option value="">Any</option><option value="0">Not ascended</option><option value="any">Ascended (any)</option><option value="1">Asc 1</option><option value="2">Asc 2</option><option value="3">Asc 3</option><option value="4">Asc 4</option></select></div>
+          <button class="btn" id="fClear" type="button" hidden>Clear filters</button>
+        </div>
+        <div class="members" id="members"></div>
+      </section>
+      <aside>
+        <div class="card" id="ghCard">
+          <h3>Save to GitHub</h3>
+          <p class="note" id="ghState"></p>
+          <details><summary class="note" style="cursor:pointer"><b>Officer setup</b> (one time per device)</summary>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+              <div class="two"><div class="field"><label for="ghOwner">GitHub owner</label><input class="txt" id="ghOwner" autocomplete="off"></div>
+              <div class="field"><label for="ghRepo">Repo</label><input class="txt" id="ghRepo" autocomplete="off"></div></div>
+              <div class="field"><label for="ghToken">Access token</label><input class="txt" id="ghToken" type="password" autocomplete="off" placeholder="github_pat_…"></div>
+              <div class="actions"><button class="btn primary" id="ghConnect" type="button">Connect</button><button class="btn" id="ghDisconnect" type="button" hidden>Disconnect</button></div>
+              <span class="note" id="ghMsg"></span>
+              <p class="note">The token stays on this device only. Make it a fine-grained token limited to this one repo, with Contents: Read and write.</p>
+            </div></details>
+        </div>
+        <div class="card" id="bkCard">
+          <h3>Backup &amp; restore</h3>
+          <p class="note">Everything saves in this browser automatically, but clearing browser data or switching phones wipes it. Keep a backup somewhere safe, like LINE Keep or your Notes app.</p>
+          <div class="note" id="bkStatus"></div>
+          <div class="actions">
+            <button class="btn primary" id="bkCopy" type="button">Copy backup</button>
+            <button class="btn" id="bkFile" type="button" hidden>Save backup file</button>
+            <button class="btn" id="bkRestoreBtn" type="button">Restore</button>
+          </div>
+          <span class="note" id="bkMsg"></span>
+          <textarea class="copyfall" id="bkText" hidden readonly></textarea>
+          <div id="bkRestore" hidden style="display:flex;flex-direction:column;gap:8px">
+            <label for="bkIn" class="muted" style="font-size:12px">Paste a backup (starts with WDB1:) or choose a backup file</label>
+            <textarea class="copyfall" id="bkIn" style="min-height:80px" spellcheck="false"></textarea>
+            <input type="file" id="bkFileIn" accept=".txt,text/plain" style="font-size:12.5px">
+            <button class="btn danger" id="bkGo" type="button">Replace everything here with this backup</button>
+            <span id="bkErr" style="color:var(--bad);font-size:12.5px"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Add roster codes</h3>
+          <p class="note">Paste codes from LINE — one or many at once. You can paste a whole chunk of chat; only the codes are read. A newer code from the same member replaces their old one.</p>
+          <textarea class="copyfall" id="rPaste" style="min-height:110px" spellcheck="false" placeholder="RST1:…"></textarea>
+          <div class="actions"><button class="btn primary" id="rAdd" type="button">Add rosters</button></div>
+          <span id="rMsg" style="font-size:12.5px"></span>
+        </div>
+        <div class="card">
+          <h3>Owners</h3>
+          <div class="owners" id="owners"><span class="muted">Search above to list every member who owns a champ, best first.</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+
+  <!-- Screenshot reader (only shown when this viewer can ask Claude) -->
+
+  <div id="copyFallback" hidden class="card"><h3>Copy this text</h3><textarea class="copyfall" id="copyText" readonly></textarea></div>
+</div>
+<datalist id="champList"></datalist>
+<datalist id="memberList"></datalist>
+<div id="ownLists"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const PLAYERS = 10, DEF = 5, BGS = [1,2,3], PTS = 30;
+let mode="one"; try{if(localStorage.getItem("wdp-mode")==="five") mode="five"}catch(e){}
+const per=()=>mode==="one"?1:DEF;
+const CHAMPS = ["Abomination", "Abomination (Immortal)", "Absorbing Man", "Adam Warlock", "Aegon", "Agatha Harkness", "Agent Venom", "Air-Walker", "America Chavez", "Angela", "Annihilus", "Ant-Man", "Ant-Man (Future)", "Anti-Venom", "Apocalypse", "Arcade", "Archangel", "Arnim Zola", "Attuma", "Baron Zemo", "Bastion", "Beast", "Beta Ray Bill", "Bishop", "Black Bolt", "Black Cat", "Black Panther", "Black Panther (Civil War)", "Black Tarantula", "Black Widow", "Black Widow (Claire Voyant)", "Black Widow (Deadly Origin)", "Blackheart", "Blade", "Blade (Stellar Forged)", "Blue Marvel", "Bullseye", "Cable", "Captain America", "Captain America (Infinity War)", "Captain America (Sam Wilson)", "Captain America (WWII)", "Captain Britain", "Captain Marvel (Classic)", "Captain Marvel (Movie)", "Carnage", "Cassandra Nova", "Cassie Lang", "The Champion", "Chee'ilth", "Civil Warrior", "Colossus", "Corvus Glaive", "Cosmic Ghost Rider", "Count Nefaria", "Crossbones", "Cull Obsidian", "Cyclops (Blue Team)", "Cyclops (New Xavier School)", "Dani Moonstar", "Daredevil (Classic)", "Daredevil (Hell's Kitchen)", "Dark Phoenix", "Darkhawk", "Dazzler", "Deadpool", "Deadpool (X-Force)", "Deathlok", "The Destroyer", "Diablo", "Doctor Bong", "Doctor Doom", "Doctor Octopus", "Doctor Strange", "Doctor Voodoo", "Domino", "Dormammu", "Dracula", "Dragon Man", "Drax", "Dust", "Ebony Maw", "Electro", "Elektra", "Elsa Bloodstone", "Emma Frost", "Enchantress", "Falcon", "Falcon (Joaquin Torres)", "Franken-Castle", "Galan", "Gambit", "Gamora", "Gentle", "Ghost", "Ghost Rider", "Gladiator", "Goldpool", "Gorr", "Green Goblin", "Groot", "Guardian", "Guillotine", "Guillotine (Deathless)", "Guillotine 2099", "Gwenom", "Gwenpool", "Havok", "Hawkeye", "Heimdall", "Hela", "Hercules", "High Evolutionary", "Hit-Monkey", "Hobgoblin", "The Hood", "Howard the Duck", "Hulk", "Hulk (Immortal)", "Hulk (Ragnarok)", "Hulkbuster", "Hulkling", "Human Torch", "Hyperion", "Iceman", "Ikaris", "Imperiosa", "Invisible Woman", "Iron Fist", "Iron Fist (Immortal)", "Iron Man", "Iron Man (Infamous)", "Iron Man (Infinity War)", "Iron Patriot", "Ironheart", "Isophyne", "Jabari Panther", "Jack O'Lantern", "Jean Grey", "Jessica Jones", "Joe Fixit", "Jubilee", "Juggernaut", "Kang", "Karnak", "Karolina Dean", "Kate Bishop", "Killmonger", "Kindred", "King Groot", "King Groot (Deathless)", "Kingpin", "Kitty Pryde", "Knull", "Korg", "Kraven", "Kushala", "Lady Deathstrike", "The Leader", "Lizard", "Loki", "Longshot", "Luke Cage", "Lumatrix", "M'Baku", "M.O.D.O.K.", "Madelyne Pryor", "Maestro", "Magik", "Magneto", "Magneto (House of X)", "The Maker", "Man-Thing", "Mangog", "Mantis", "Masacre", "Medusa", "Mephisto", "Mister Fantastic", "Mister Negative", "Mister Sinister", "Misty Knight", "Mojo", "Mole Man", "Moon Knight", "Moondragon", "Morbius", "Mordo", "Morningstar", "Mr. Knight", "Ms. Marvel", "Ms. Marvel (Kamala Khan)", "Mysterio", "Namor", "Nebula", "Negasonic Teenage Warhead", "Nick Fury", "Nico Minoru", "Night Thrasher", "Nightcrawler", "Nimrod", "Northstar", "Nova", "Odin", "Okoye", "Old Man Logan", "Omega Red", "Omega Sentinel", "Onslaught", "The Overseer", "Patriot", "Peni Parker", "Phoenix", "Photon", "Phyla-Vell", "Pixie", "Platinumpool", "Polaris", "Professor X", "Prowler", "Proxima Midnight", "Psycho-Man", "Psylocke", "Punisher", "Punisher 2099", "Purgatory", "Quake", "Quicksilver", "Red Goblin", "Red Guardian", "Red Hulk", "Red Skull", "Rhino", "Rintrah", "Rocket Raccoon", "Rogue", "Ronan", "Ronin", "Ruby Thursday", "Sabretooth", "Sandman", "Sasquatch", "Sauron", "Scarlet Witch (Classic)", "Scarlet Witch (Sigil)", "Scorpion", "Scream", "Sentinel", "Sentry", "The Serpent", "Sersi", "Shang-Chi", "Shathra", "Shatterstar", "She-Hulk", "She-Hulk (Deathless)", "Shocker", "Shuri", "Silk", "Silver Centurion", "Silver Sable", "Silver Samurai", "Silver Surfer", "Solvarch", "Sorcerer Supreme", "Spider-Gwen", "Spider-Ham", "Spider-Man (Classic)", "Spider-Man (Miles Morales)", "Spider-Man (Pavitr Prabhakar)", "Spider-Man (Stark Enhanced)", "Spider-Man (Stealth Suit)", "Spider-Man (Supreme)", "Spider-Man (Symbiote)", "Spider-Man 2099", "Spider-Man Noir", "Spider-Punk", "Spider-Slayer (J. Jonah Jameson)", "Spider-Woman", "Spiral", "Spot", "Squirrel Girl", "Star-Lord", "Star-Lord (Stellar Forged)", "Storm", "Storm (Pyramid X)", "Stryfe", "Sunspot", "Super-Skrull", "Superior Iron Man", "Symbiote Supreme", "Taskmaster", "Terrax", "Thanos", "Thanos (Deathless)", "Thing", "Thor", "Thor (Jane Foster)", "Thor (Ragnarok)", "Tigra", "Titania", "Toad", "Ultron", "Ultron (Classic)", "Unstoppable Colossus", "Valkyrie", "Venom", "Venom the Duck", "Venompool", "Vision", "Vision (Aarkus)", "Vision (Age of Ultron)", "Vision (Deathless)", "Viv Vision", "Void", "Vox", "Vulture", "War Machine", "Warlock", "Wasp", "Wave", "Werewolf By Night", "White Tiger", "Wiccan", "Winter Soldier", "Wolverine", "Wolverine (Weapon X)", "Wolverine (X-23)", "Wong", "Yelena Belova", "Yellowjacket", "Yondu"];
+const ALIAS = {"doom": "doctordoom", "drdoom": "doctordoom", "absman": "absorbingman", "abs": "absorbingman", "docock": "doctoroctopus", "dococ": "doctoroctopus", "drstrange": "doctorstrange", "strange": "doctorstrange", "drvoodoo": "doctorvoodoo", "voodoo": "doctorvoodoo", "cmm": "captainmarvelmovie", "cgr": "cosmicghostrider", "x23": "wolverinex23", "weaponx": "wolverineweaponx", "immortalhulk": "hulkimmortal", "sorcsup": "sorcerersupreme", "symbsup": "symbiotesupreme", "ssup": "symbiotesupreme", "miles": "spidermanmilesmorales", "milesmorales": "spidermanmilesmorales", "spidermanmiles": "spidermanmilesmorales", "sam": "captainamericasamwilson", "cap": "captainamerica", "capiw": "captainamericainfinitywar", "ciw": "captainamericainfinitywar", "capww2": "captainamericawwii", "saron": "spidermansupreme", "sm2099": "spiderman2099", "herc": "hercules", "hercs": "hercules", "nf": "nickfury", "fury": "nickfury", "kamala": "msmarvelkamalakhan", "ntw": "negasonicteenagewarhead", "negasonic": "negasonicteenagewarhead", "sw": "scarletwitchsigil", "classicsw": "scarletwitchclassic", "ob": "omegared", "bp": "blackpanther", "bpcw": "blackpanthercivilwar", "ikky": "ikaris", "abomimmortal": "abominationimmortal", "iabom": "abominationimmortal", "captainmarvel": "captainmarvelmovie", "scarletwitch": "scarletwitchsigil", "oml": "oldmanlogan", "logan": "oldmanlogan", "prof": "professorx", "profx": "professorx", "xavier": "professorx", "symbiotespidey": "spidermansymbiote", "noir": "spidermannoir", "jjj": "spiderslayerjjonahjameson", "ocl": "oldmanlogan", "immortalabom": "abominationimmortal", "pavitr": "spidermanpavitrprabhakar", "tdl": "thanosdeathless", "dthanos": "thanosdeathless", "yelena": "yelenabelova", "rlrc": "rocketraccoon", "rocket": "rocketraccoon", "sss": "superskrull", "cull": "cullobsidian", "mrnegative": "misternegative", "negative": "misternegative", "mrfantastic": "misterfantastic", "mrsinister": "mistersinister", "sinister": "mistersinister", "bong": "doctorbong", "drbong": "doctorbong", "zemo": "baronzemo", "daredevilnetflix": "daredevilhellskitchen", "blackpantherclassic": "blackpanther", "whitewidow": "yelenabelova", "stature": "cassielang"};
+const CLASS = {"Black Bolt": "Cosmic", "Drax": "Cosmic", "Gamora": "Cosmic", "Ronan": "Cosmic", "Thor": "Cosmic", "Captain Marvel (Classic)": "Cosmic", "Ms. Marvel": "Cosmic", "Venom": "Cosmic", "Groot": "Cosmic", "Spider-Man (Symbiote)": "Cosmic", "Captain Marvel (Movie)": "Cosmic", "Superior Iron Man": "Tech", "Thanos": "Cosmic", "Hyperion": "Cosmic", "Venompool": "Cosmic", "Carnage": "Cosmic", "Angela": "Cosmic", "Hela": "Cosmic", "Symbiote Supreme": "Mystic", "Proxima Midnight": "Cosmic", "Corvus Glaive": "Cosmic", "Heimdall": "Cosmic", "Venom the Duck": "Cosmic", "The Champion": "Cosmic", "Void": "Mystic", "Sentry": "Science", "Annihilus": "Cosmic", "Cull Obsidian": "Cosmic", "Vision (Aarkus)": "Cosmic", "Silver Surfer": "Cosmic", "Terrax": "Cosmic", "Air-Walker": "Cosmic", "Cosmic Ghost Rider": "Cosmic", "Guardian": "Tech", "Odin": "Cosmic", "Knull": "Cosmic", "Sersi": "Cosmic", "Ikaris": "Cosmic", "Mangog": "Mystic", "Galan": "Cosmic", "Gorr": "Cosmic", "Hercules": "Cosmic", "Hulkling": "Cosmic", "Wong": "Mystic", "Adam Warlock": "Cosmic", "Gladiator": "Cosmic", "Maestro": "Cosmic", "Kindred": "Mystic", "Moondragon": "Skill", "Chee'ilth": "Skill", "Beta Ray Bill": "Cosmic", "Enchantress": "Mystic", "The Serpent": "Cosmic", "Super-Skrull": "Cosmic", "Scream": "Cosmic", "Dark Phoenix": "Cosmic", "Karolina Dean": "Cosmic", "Thanos (Deathless)": "Cosmic", "Imperiosa": "Cosmic", "Gwenom": "Cosmic", "Nova": "Cosmic", "Hulkbuster": "Tech", "Iron Man": "Tech", "Iron Patriot": "Tech", "Ultron": "Tech", "Vision": "Tech", "Vision (Age of Ultron)": "Tech", "War Machine": "Tech", "Star-Lord": "Tech", "Rocket Raccoon": "Tech", "Civil Warrior": "Tech", "Ultron (Classic)": "Tech", "Howard the Duck": "Tech", "Punisher 2099": "Tech", "Spider-Man (Stark Enhanced)": "Tech", "Vulture": "Tech", "Iron Man (Infinity War)": "Tech", "Wasp": "Science", "Ghost": "Tech", "Darkhawk": "Tech", "Sentinel": "Tech", "Nick Fury": "Skill", "Guillotine 2099": "Tech", "Mysterio": "Tech", "Warlock": "Tech", "Nimrod": "Tech", "Silver Centurion": "Tech", "Omega Sentinel": "Tech", "Iron Man (Infamous)": "Tech", "Ant-Man (Future)": "Tech", "Viv Vision": "Tech", "Vox": "Cosmic", "Shocker": "Tech", "Arcade": "Tech", "Bastion": "Tech", "Jack O'Lantern": "Tech", "Prowler": "Tech", "Ironheart": "Tech", "Yondu": "Tech", "Ruby Thursday": "Tech", "Doctor Doom": "Mystic", "Spider-Slayer (J. Jonah Jameson)": "Tech", "Arnim Zola": "Tech", "M.O.D.O.K.": "Science", "Colossus": "Mutant", "Cyclops (New Xavier School)": "Mutant", "Deadpool": "Mutant", "Storm": "Mutant", "Wolverine": "Mutant", "Magneto": "Mutant", "Magneto (House of X)": "Mutant", "Deadpool (X-Force)": "Mutant", "Cyclops (Blue Team)": "Mutant", "Old Man Logan": "Mutant", "Wolverine (X-23)": "Mutant", "Nightcrawler": "Mutant", "Beast": "Mutant", "Gambit": "Mutant", "Rogue": "Mutant", "Phoenix": "Mutant", "Cable": "Mutant", "Archangel": "Mutant", "Psylocke": "Mutant", "Iceman": "Mutant", "Sabretooth": "Mutant", "Domino": "Mutant", "Omega Red": "Mutant", "Emma Frost": "Mutant", "Bishop": "Mutant", "Havok": "Mutant", "Mister Sinister": "Mutant", "Sunspot": "Mutant", "Wolverine (Weapon X)": "Mutant", "Storm (Pyramid X)": "Mutant", "Professor X": "Mutant", "Apocalypse": "Mutant", "Longshot": "Mutant", "Jubilee": "Mutant", "Stryfe": "Mutant", "Kitty Pryde": "Mutant", "Captain Britain": "Mutant", "Toad": "Mutant", "Dani Moonstar": "Mutant", "Onslaught": "Mutant", "Negasonic Teenage Warhead": "Mutant", "Northstar": "Mutant", "Dazzler": "Mutant", "Dust": "Mutant", "Gentle": "Mutant", "Jean Grey": "Mutant", "Cassandra Nova": "Mutant", "Polaris": "Mutant", "Pixie": "Mutant", "Shatterstar": "Mutant", "Magik": "Mystic", "Black Panther": "Skill", "Hawkeye": "Skill", "Punisher": "Skill", "Winter Soldier": "Skill", "Daredevil (Classic)": "Skill", "Black Widow": "Skill", "Moon Knight": "Skill", "Elektra": "Skill", "Daredevil (Hell's Kitchen)": "Skill", "Crossbones": "Skill", "Black Panther (Civil War)": "Skill", "Kingpin": "Skill", "Blade": "Skill", "Taskmaster": "Skill", "Gwenpool": "Skill", "Killmonger": "Skill", "Aegon": "Skill", "Masacre": "Skill", "Night Thrasher": "Skill", "Red Skull": "Skill", "Ronin": "Skill", "Elsa Bloodstone": "Skill", "Black Widow (Claire Voyant)": "Skill", "Black Widow (Deadly Origin)": "Skill", "Hit-Monkey": "Skill", "Red Guardian": "Skill", "Squirrel Girl": "Skill", "Shang-Chi": "Skill", "Kraven": "Skill", "Jabari Panther": "Skill", "Misty Knight": "Skill", "Black Cat": "Skill", "Valkyrie": "Skill", "Shuri": "Science", "Baron Zemo": "Skill", "Kate Bishop": "Skill", "Mr. Knight": "Skill", "Bullseye": "Skill", "Patriot": "Skill", "Yelena Belova": "Skill", "Okoye": "Skill", "Lumatrix": "Skill", "Black Tarantula": "Skill", "Star-Lord (Stellar Forged)": "Skill", "M'Baku": "Skill", "Doctor Bong": "Skill", "Attuma": "Skill", "Spider-Man (Stealth Suit)": "Skill", "Spider-Man Noir": "Skill", "Abomination": "Science", "Captain America": "Science", "Hulk": "Science", "Rhino": "Science", "Spider-Man (Classic)": "Science", "Electro": "Science", "Captain America (WWII)": "Science", "Ant-Man": "Science", "Yellowjacket": "Science", "Joe Fixit": "Science", "Spider-Gwen": "Science", "Luke Cage": "Science", "She-Hulk": "Science", "Red Hulk": "Science", "Quake": "Science", "Spider-Man (Miles Morales)": "Science", "Agent Venom": "Science", "Captain America (Infinity War)": "Science", "Hulk (Ragnarok)": "Science", "Green Goblin": "Science", "Doctor Octopus": "Science", "Thing": "Science", "Human Torch": "Science", "Invisible Woman": "Science", "Mister Fantastic": "Science", "Hulk (Immortal)": "Science", "Abomination (Immortal)": "Science", "Spider-Ham": "Science", "Red Goblin": "Science", "Sasquatch": "Mystic", "Dragon Man": "Mystic", "Spider-Man 2099": "Science", "Anti-Venom": "Science", "Quicksilver": "Science", "Scorpion": "Science", "Titania": "Science", "Spot": "Science", "Peni Parker": "Tech", "Sandman": "Science", "Photon": "Science", "Silk": "Science", "Morbius": "Science", "Cassie Lang": "Science", "Count Nefaria": "Science", "She-Hulk (Deathless)": "Science", "Spider-Punk": "Science", "Spider-Woman": "Science", "High Evolutionary": "Science", "Lizard": "Science", "Blue Marvel": "Science", "Hobgoblin": "Science", "The Leader": "Science", "Doctor Strange": "Mystic", "Iron Fist": "Skill", "Scarlet Witch (Classic)": "Mystic", "Unstoppable Colossus": "Mystic", "Guillotine": "Mystic", "Thor (Jane Foster)": "Cosmic", "Juggernaut": "Mystic", "Loki": "Mystic", "Ghost Rider": "Mystic", "Mordo": "Mystic", "Doctor Voodoo": "Mystic", "Thor (Ragnarok)": "Cosmic", "Dormammu": "Mystic", "Mephisto": "Mystic", "Morningstar": "Mystic", "Medusa": "Cosmic", "Nebula": "Tech", "Karnak": "Cosmic", "Man-Thing": "Mystic", "Diablo": "Mystic", "Ebony Maw": "Mystic", "Mojo": "Mystic", "Sorcerer Supreme": "Mystic", "Tigra": "Mystic", "Iron Fist (Immortal)": "Skill", "Mister Negative": "Mystic", "Scarlet Witch (Sigil)": "Mystic", "Purgatory": "Mystic", "America Chavez": "Mystic", "Rintrah": "Mystic", "Wiccan": "Mystic", "Guillotine (Deathless)": "Mystic", "Absorbing Man": "Mystic", "Kushala": "Mystic", "Werewolf By Night": "Mystic", "Nico Minoru": "Mystic", "Spiral": "Mystic", "Shathra": "Mystic", "White Tiger": "Mystic", "Spider-Man (Pavitr Prabhakar)": "Mystic", "Spider-Man (Supreme)": "Mystic", "Madelyne Pryor": "Mystic", "Agatha Harkness": "Mystic", "Dracula": "Mystic", "Blackheart": "Mystic", "Namor": "Mutant", "Goldpool": "Mutant", "Platinumpool": "Mutant", "Deathlok": "Tech", "Blade (Stellar Forged)": "Mystic", "Captain America (Sam Wilson)": "Tech", "The Destroyer": "Mystic", "Falcon": "Skill", "Falcon (Joaquin Torres)": "Science", "Franken-Castle": "Skill", "The Hood": "Mystic", "Isophyne": "Mystic", "Jessica Jones": "Science", "Kang": "Tech", "King Groot": "Cosmic", "King Groot (Deathless)": "Cosmic", "Korg": "Skill", "Lady Deathstrike": "Tech", "The Maker": "Tech", "Mantis": "Skill", "Mole Man": "Skill", "Ms. Marvel (Kamala Khan)": "Cosmic", "The Overseer": "Science", "Phyla-Vell": "Cosmic", "Psycho-Man": "Tech", "Sauron": "Mutant", "Silver Sable": "Skill", "Silver Samurai": "Mutant", "Solvarch": "Tech", "Vision (Deathless)": "Tech", "Wave": "Science"};
+
+
+function norm(s){
+  let t=String(s||"").toLowerCase().trim();
+  if(!t) return "";
+  t=t.replace(/^(\d\s*(\*|★|⭐|-?\s*star)|r\d+)\s*/,"").replace(/\s+(\d\s*(\*|★|⭐)|r\d+)\s*$/,"");
+  t=t.replace(/^(r\d+)\s+/,"");
+  t=t.replace(/^the\s+/,"");
+  t=t.replace(/[^a-z0-9]/g,"");
+  return ALIAS[t]||t;
+}
+const nameKey=s=>String(s||"").toLowerCase().replace(/[^a-z0-9À-￿]/g,"");
+const CANON={}; CHAMPS.forEach(c=>{CANON[norm(c)]=c});
+const pretty=s=>CANON[norm(s)]||String(s||"").trim();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>n.toLocaleString();
+const $=id=>document.getElementById(id);
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function recall(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+
+$("champList").innerHTML=CHAMPS.map(c=>`<option value="${esc(c)}"></option>`).join("");
+
+let tt; function toast(m){const el=$("toast");el.textContent=m;el.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("show"),2600)}
+function copyText(t,okMsg,fbBox){
+  const fb=()=>{
+    if(fbBox){fbBox();return}
+    const box=$("copyFallback");box.hidden=false;const ta=$("copyText");ta.value=t;ta.focus();ta.select();box.scrollIntoView({block:"nearest"});
+  };
+  try{navigator.clipboard.writeText(t).then(()=>toast(okMsg),fb)}catch(e){fb()}
+}
+function b64e(x){const b=new TextEncoder().encode(x);let bin="";b.forEach(y=>bin+=String.fromCharCode(y));return btoa(bin)}
+function b64d(x){const bin=atob(x);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return new TextDecoder().decode(b)}
+
+/* =================== ROSTERS =================== */
+const clampInt=(v,lo,hi,d)=>{v=parseInt(v,10);return isNaN(v)?d:Math.min(hi,Math.max(lo,v))};
+function cleanChamp(x){
+  if(!x||typeof x!=="object") return null;
+  const c=String(x.c||"").trim().slice(0,40); if(!norm(c)) return null;
+  return {c:pretty(c),r:clampInt(x.r,4,5,4),a:clampInt(x.a,0,4,0),s:clampInt(x.s,0,200,0)};
+}
+function cleanRoster(x){
+  if(!x||typeof x!=="object") return null;
+  const r={name:String(x.name||"").trim().slice(0,40),bg:[1,2,3].includes(+x.bg)?+x.bg:"",champs:[],at:+x.at||Date.now()};
+  const seen=new Set();
+  (Array.isArray(x.champs)?x.champs:[]).forEach(c=>{const k=cleanChamp(c); if(k&&!seen.has(norm(k.c))){seen.add(norm(k.c));r.champs.push(k)}});
+  return r;
+}
+let mine=cleanRoster(recall("wdp-mine"))||{name:"",bg:"",champs:[],at:Date.now()};
+let rosters={};
+(function(){
+  const saved=recall("wdp-rosters");
+  if(saved&&typeof saved==="object"){Object.values(saved).forEach(x=>{const r=cleanRoster(x);if(r&&r.name)rosters[nameKey(r.name)]=r})}
+  else{
+    const ex=[["Example A",1,[["Hulkling",5,3,200],["Spot",5,2,120],["Korg",4,4,200],["Wiccan",4,2,60],["Bishop",5,1,0]]],
+              ["Example B",1,[["Absorbing Man",5,4,200],["Doctor Doom",5,3,160],["Thing",4,2,40],["Domino",4,1,0]]],
+              ["Example C",1,[["Serpent",5,4,200],["Onslaught",5,2,100],["Doctor Doom",4,1,20],["Tigra",4,3,200]]]];
+    ex.forEach(([n,b,cs])=>{rosters[nameKey(n)]={name:n,bg:b,champs:cs.map(([c,r,a,s])=>({c,r,a,s})),at:Date.now()}});
+  }
+})();
+const saveMine=()=>{mine.at=Date.now();store("wdp-mine",mine);if(window.__dirty)window.__dirty()};
+const saveRosters=()=>{store("wdp-rosters",rosters);if(window.__dirty)window.__dirty()};
+function allRosters(){
+  const out=Object.assign({},rosters);
+  if(mine.name&&mine.champs.length) out[nameKey(mine.name)]=Object.assign({},mine,{you:true});
+  return out;
+}
+const rosterFor=name=>{const k=nameKey(name);return k?allRosters()[k]||null:null};
+const ascLabel=a=>a?`Asc ${a}`:"Not ascended";
+const champLabel=x=>`R${x.r} · ${x.a?`A${x.a}`:"No asc"} · Sig ${x.s}`;
+const ascOptions=(sel,unknown)=>(unknown?`<option value=""${sel==null?" selected":""}>?</option>`:"")+[0,1,2,3,4].map(a=>`<option value="${a}"${sel===a?" selected":""}>${ascLabel(a)}</option>`).join("");
+const better=(x,y)=>(y.r-x.r)||(y.a-x.a)||(y.s-x.s);
+function owns(r,champ){const k=norm(champ);return r.champs.find(x=>norm(x.c)===k)||null}
+
+function rosterCode(r){return "RST1:"+b64e(JSON.stringify({n:r.name,b:r.bg||0,t:r.at,c:r.champs.map(x=>[x.c,x.r,x.a,x.s])}))}
+function parseRosterCodes(text){
+  const out=[]; const src=String(text||"");
+  const tryParse=b=>{try{const d=JSON.parse(b64d(b));const r=cleanRoster({name:d.n,bg:d.b,at:d.t,champs:(d.c||[]).map(a=>({c:a[0],r:a[1],a:a[2],s:a[3]}))});if(r&&r.name)return r}catch(e){}return null};
+  let m, re=/RST1:([A-Za-z0-9+/=]+)/g;
+  while((m=re.exec(src))){const r=tryParse(m[1]); if(r) out.push(r);}
+  if(!out.length){ // a single code split across lines
+    const joined=src.replace(/\s+/g,""); const one=/RST1:([A-Za-z0-9+/=]+)/.exec(joined);
+    if(one){const r=tryParse(one[1]); if(r) out.push(r);}
+  }
+  return out;
+}
+
+/* ---------- My roster view ---------- */
+const pick=$("pick"), pickList=$("pickList");
+let pickItems=[], pickSel=0;
+function searchChamps(q){
+  const raw=q.trim(); const k=raw.toLowerCase().replace(/[^a-z0-9]/g,""); if(!k) return [];
+  const hits=[];
+  CHAMPS.forEach(c=>{const n=c.toLowerCase().replace(/[^a-z0-9]/g,""); const w=c.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    let score=-1;
+    if(n.startsWith(k)) score=0; else if(w.some(x=>x.startsWith(k))) score=1; else if(n.includes(k)) score=2;
+    if(score>=0) hits.push([score,c]);});
+  const al=ALIAS[k]; if(al&&CANON[al]&&!hits.some(h=>h[1]===CANON[al])) hits.push([0,CANON[al]]);
+  hits.sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1]));
+  const list=hits.slice(0,10).map(h=>({c:h[1]}));
+  if(!CANON[norm(raw)]) list.push({c:raw,custom:true});
+  return list;
+}
+function renderPick(){
+  const q=pick.value; pickItems=searchChamps(q);
+  if(!pickItems.length){pickList.hidden=true;pick.setAttribute("aria-expanded","false");return}
+  pickSel=Math.min(pickSel,pickItems.length-1);
+  pickList.innerHTML=pickItems.map((it,i)=>{
+    const have=owns(mine,it.c);
+    return `<li role="option" id="opt-${i}" data-i="${i}" class="${it.custom?"custom":""}" aria-selected="${i===pickSel}">${it.custom?`Add “${esc(it.c)}” as typed`:esc(it.c)}${have?`<span class="have">in roster</span>`:""}</li>`;
+  }).join("");
+  pickList.hidden=false; pick.setAttribute("aria-expanded","true"); pick.setAttribute("aria-activedescendant",`opt-${pickSel}`);
+}
+function choose(i){
+  const it=pickItems[i]; if(!it) return;
+  const name=it.custom?it.c.trim().slice(0,40):it.c;
+  if(!norm(name)) return;
+  const ex=owns(mine,name);
+  if(ex){toast(`${ex.c} is already in your roster`)}
+  else{mine.champs.push({c:name,r:4,a:0,s:0});saveMine();toast(`Added ${name} — set its rank, and ascension if it has one`)}
+  pick.value=""; pickSel=0; pickList.hidden=true; pick.setAttribute("aria-expanded","false");
+  renderMine(name); pick.focus();
+}
+pick.addEventListener("input",()=>{pickSel=0;renderPick()});
+pick.addEventListener("focus",renderPick);
+pick.addEventListener("keydown",e=>{
+  if(pickList.hidden&&e.key!=="Enter") return;
+  if(e.key==="ArrowDown"){e.preventDefault();pickSel=(pickSel+1)%pickItems.length;renderPick()}
+  else if(e.key==="ArrowUp"){e.preventDefault();pickSel=(pickSel-1+pickItems.length)%pickItems.length;renderPick()}
+  else if(e.key==="Enter"){e.preventDefault();if(pickItems.length)choose(pickSel)}
+  else if(e.key==="Escape"){pickList.hidden=true;pick.setAttribute("aria-expanded","false")}
+});
+pickList.addEventListener("mousedown",e=>{const li=e.target.closest("li");if(li){e.preventDefault();choose(+li.dataset.i)}});
+document.addEventListener("click",e=>{if(!e.target.closest(".picker")){pickList.hidden=true;pick.setAttribute("aria-expanded","false")}});
+
+$("mineName").addEventListener("input",e=>{mine.name=e.target.value.slice(0,40);saveMine();renderCounts();renderMineSub()});
+$("mineBg").addEventListener("change",e=>{mine.bg=e.target.value?+e.target.value:"";saveMine();renderMineSub()});
+
+function renderMineSub(){
+  const n=mine.champs.length;
+  $("mineSub").textContent=`${n} champion${n===1?"":"s"} · all 7★${mine.bg?` · BG ${mine.bg}`:""}`;
+}
+function renderMine(focusChamp){
+  $("mineName").value=mine.name; $("mineBg").value=mine.bg?String(mine.bg):"";
+  renderMineSub(); renderCounts();
+  const list=$("mineList");
+  if(!mine.champs.length){list.innerHTML=`<div class="empty">No champions yet. Search above to add your best 7★ defenders.</div>`;return}
+  const sorted=mine.champs.slice().sort((x,y)=>x.c.localeCompare(y.c));
+  let h=`<div class="rhead"><span>Champion</span><span>Rarity</span><span>Rank</span><span>Ascension</span><span>Sig</span><span></span></div>`;
+  sorted.forEach(x=>{
+    const id=nameKey(x.c)||"x";
+    h+=`<div class="ritem" data-c="${esc(x.c)}">
+      <span class="nm">${esc(x.c)}</span><span class="star">7★</span>
+      <div><span class="mlabel">Rank</span><select class="sel" data-k="r" id="r-${id}" aria-label="${esc(x.c)} rank"><option value="4"${x.r===4?" selected":""}>Rank 4</option><option value="5"${x.r===5?" selected":""}>Rank 5</option></select></div>
+      <div><span class="mlabel">Ascension</span><select class="sel" data-k="a" id="a-${id}" aria-label="${esc(x.c)} ascension">${ascOptions(x.a,false)}</select></div>
+      <div><span class="mlabel">Sig</span><input class="txt" data-k="s" id="s-${id}" type="number" inputmode="numeric" min="0" max="200" value="${x.s}" aria-label="${esc(x.c)} signature level"></div>
+      <button class="xbtn" type="button" data-k="x" aria-label="Remove ${esc(x.c)}">×</button>
+    </div>`;
+  });
+  list.innerHTML=h;
+  if(focusChamp){const row=[...list.querySelectorAll(".ritem")].find(r=>r.dataset.c===focusChamp); if(row){row.scrollIntoView({block:"nearest"});}}
+}
+$("mineList").addEventListener("change",e=>{
+  const row=e.target.closest(".ritem"); if(!row) return; const k=e.target.dataset.k; if(!k||k==="x") return;
+  const x=owns(mine,row.dataset.c); if(!x) return;
+  if(k==="r") x.r=clampInt(e.target.value,4,5,4);
+  if(k==="a") x.a=clampInt(e.target.value,0,4,0);
+  if(k==="s"){x.s=clampInt(e.target.value,0,200,0); e.target.value=x.s;}
+  saveMine(); renderPlanIfVisible();
+});
+$("mineList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-k='x']"); if(!b) return;
+  const row=b.closest(".ritem"); const c=row.dataset.c;
+  mine.champs=mine.champs.filter(x=>x.c!==c); saveMine(); renderMine(); toast(`Removed ${c}`);
+});
+$("mineCopy").addEventListener("click",()=>{
+  if(!mine.name.trim()){toast("Add your in-game name first");$("mineName").focus();return}
+  if(!mine.champs.length){toast("Add at least one champion first");pick.focus();return}
+  const code=rosterCode(mine);
+  copyText(code,"Roster code copied — paste it in your alliance LINE group",()=>{
+    $("mineCodeCard").hidden=false; const ta=$("mineCodeText"); ta.value=code; ta.focus(); ta.select();
+  });
+});
+
+/* ---------- Alliance rosters view ---------- */
+$("rAdd").addEventListener("click",()=>{
+  const got=parseRosterCodes($("rPaste").value); const msg=$("rMsg");
+  if(!got.length){msg.style.color="var(--bad)";msg.textContent="No roster codes found. They start with RST1: — copy the whole code from LINE.";return}
+  let added=0,updated=0,older=0;
+  got.forEach(r=>{const k=nameKey(r.name); const ex=rosters[k];
+    if(ex&&ex.at>r.at){older++;return}
+    if(ex) updated++; else added++;
+    rosters[k]=r;});
+  // drop the example rosters once real ones arrive
+  Object.keys(rosters).forEach(k=>{if(/^example[abc]$/.test(k)&&!got.some(r=>nameKey(r.name)===k)) delete rosters[k]});
+  saveRosters(); $("rPaste").value="";
+  msg.style.color="var(--ok)";
+  msg.textContent=[added&&`Added ${added}`,updated&&`updated ${updated}`,older&&`skipped ${older} older code${older>1?"s":""}`].filter(Boolean).join(", ")+".";
+  renderAll(); renderCounts(); refreshOwnLists();
+});
+$("allCopy").addEventListener("click",()=>{
+  const list=Object.values(allRosters()); if(!list.length){toast("No rosters yet");return}
+  copyText(list.map(rosterCode).join("\n"),`Copied ${list.length} roster code${list.length>1?"s":""} — send to another officer`);
+});
+$("allFilter").addEventListener("input",renderAll);
+const classOf=c=>CLASS[pretty(c)]||"Unknown";
+["fClass","fRank","fAsc"].forEach(id=>$(id).addEventListener("change",renderAll));
+$("fClear").addEventListener("click",()=>{["fClass","fRank","fAsc"].forEach(id=>$(id).value="");$("allFilter").value="";renderAll();});
+function memberSlot(k){ // where this member sits in the war plan
+  for(const bg of BGS) for(let i=0;i<PLAYERS;i++) if(nameKey(state[slotId(bg,i)].player)===k) return {bg,i};
+  return null;
+}
+function placedAt(k,champ){
+  const m=memberSlot(k); if(!m) return null; const s=state[slotId(m.bg,m.i)];
+  for(let c=0;c<per();c++) if(norm(s.champs[c])&&norm(s.champs[c])===norm(champ)) return {bg:m.bg,i:m.i,col:c};
+  return null;
+}
+const openMembers=new Set();
+$("members").addEventListener("toggle",e=>{const d=e.target; if(!d.matches||!d.matches("details.member")) return; if(d.open) openMembers.add(d.dataset.k); else openMembers.delete(d.dataset.k);},true);
+$("members").addEventListener("change",e=>{
+  const sel=e.target.closest("[data-bgm]"); if(!sel) return;
+  const k=sel.dataset.bgm, bg=sel.value?+sel.value:"";
+  if(mine.name&&nameKey(mine.name)===k){mine.bg=bg;saveMine()} else if(rosters[k]){rosters[k].bg=bg;saveRosters()}
+  openMembers.add(k); renderAll(); refreshOwnLists(); toast(bg?`Moved to BG ${bg}`:"Battlegroup cleared");
+});
+$("members").addEventListener("click",e=>{
+  const chip=e.target.closest(".chip.pickable"); if(!chip) return;
+  const k=chip.dataset.m, champ=chip.dataset.c, r=allRosters()[k]; if(!r) return;
+  const on=placedAt(k,champ);
+  if(on){ state[slotId(on.bg,on.i)].champs[on.col]=""; savePlan(); renderAll(); toast(`Removed ${champ} from ${r.name}`); return; }
+  let m=memberSlot(k);
+  if(!m){
+    const bg=+r.bg||activeBg; let slot=-1;
+    for(let i=0;i<PLAYERS;i++) if(!state[slotId(bg,i)].player.trim()&&!state[slotId(bg,i)].champs.some(Boolean)){slot=i;break}
+    if(slot<0){toast(`BG ${bg} is full — clear a row in War plan first`);return}
+    state[slotId(bg,slot)].player=r.name; m={bg,i:slot};
+  }
+  const s=state[slotId(m.bg,m.i)]; let msg;
+  if(mode==="one"){
+    const prev=s.champs[0]; s.champs[0]=champ;
+    msg=prev&&norm(prev)!==norm(champ)?`${r.name}: swapped ${prev} for ${champ} (BG ${m.bg})`:`${r.name} → ${champ} (BG ${m.bg})`;
+  } else {
+    const col=s.champs.slice(0,DEF).findIndex(c=>!norm(c));
+    if(col<0){toast(`${r.name} already has 5 defenders — tap one to remove it first`);return}
+    s.champs[col]=champ; msg=`${r.name} → ${champ} (BG ${m.bg})`;
+  }
+  const dup=(analyzeBg(m.bg).map[norm(champ)]||[]).length>1;
+  savePlan(); renderAll(); toast(dup?`${msg} ⚠️ duplicate in BG ${m.bg}`:msg);
+});
+$("members").addEventListener("click",e=>{
+  const b=e.target.closest("[data-rm]"); if(!b) return;
+  const k=b.dataset.rm; const r=rosters[k]; if(!r) return;
+  delete rosters[k]; saveRosters(); renderAll(); renderCounts(); refreshOwnLists();
+  toast(`Removed ${r.name} — paste their code again to bring them back`);
+});
+const editing=new Set();
+const rosterObj=k=>(mine.name&&nameKey(mine.name)===k)?mine:rosters[k];
+function touch(k){const r=rosterObj(k); if(!r) return; r.at=Date.now(); if(r===mine) saveMine(); else saveRosters(); refreshOwnLists();}
+function editList(k,r){
+  const rows=r.champs.slice().sort((x,y)=>x.c.localeCompare(y.c)).map(x=>`<div class="ritem ed" data-m="${esc(k)}" data-c="${esc(x.c)}">
+      <span class="nm"><i class="cdot c-${classOf(x.c).toLowerCase()}"></i>${esc(x.c)}</span><span class="star">7★</span>
+      <div><span class="mlabel">Rank</span><select class="sel" data-ek="r" aria-label="${esc(x.c)} rank"><option value="4"${x.r===4?" selected":""}>Rank 4</option><option value="5"${x.r===5?" selected":""}>Rank 5</option></select></div>
+      <div><span class="mlabel">Ascension</span><select class="sel" data-ek="a" aria-label="${esc(x.c)} ascension">${ascOptions(x.a,false)}</select></div>
+      <div><span class="mlabel">Sig</span><input class="txt" data-ek="s" type="number" inputmode="numeric" min="0" max="200" value="${x.s}" aria-label="${esc(x.c)} signature level"></div>
+      <button class="xbtn" type="button" data-ex="1" aria-label="Remove ${esc(x.c)}">×</button></div>`).join("");
+  return `<div class="edhint">Changes save as you make them.</div><div class="rlist">${rows||`<div class="empty">No champions yet.</div>`}</div>
+    <div class="addrow"><input class="txt" list="champList" data-addin="${esc(k)}" placeholder="Add a champion…" autocomplete="off" aria-label="Add a champion to ${esc(r.name)}"><button class="btn" type="button" data-add="${esc(k)}">Add</button></div>`;
+}
+$("members").addEventListener("change",e=>{
+  const t=e.target, ek=t.dataset.ek; if(!ek) return;
+  const row=t.closest(".ritem.ed"); const k=row.dataset.m, r=rosterObj(k); if(!r) return;
+  const x=owns(r,row.dataset.c); if(!x) return;
+  if(ek==="r") x.r=clampInt(t.value,4,5,4);
+  if(ek==="a") x.a=clampInt(t.value,0,4,0);
+  if(ek==="s"){x.s=clampInt(t.value,0,200,0); t.value=x.s;}
+  touch(k); toast(`${r.name}: ${x.c} → ${champLabel(x)}`);
+});
+$("members").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-edit]");
+  if(ed){const k=ed.dataset.edit; if(editing.has(k)) editing.delete(k); else {editing.add(k); openMembers.add(k);} renderAll(); return;}
+  const ex=e.target.closest("[data-ex]");
+  if(ex){const row=ex.closest(".ritem.ed"); const k=row.dataset.m, r=rosterObj(k); if(!r) return;
+    r.champs=r.champs.filter(x=>x.c!==row.dataset.c); touch(k); renderAll(); renderCounts(); toast(`Removed ${row.dataset.c} from ${r.name}`); return;}
+  const ad=e.target.closest("[data-add]");
+  if(ad){const k=ad.dataset.add, r=rosterObj(k); const inp=ad.parentElement.querySelector("[data-addin]"); const v=(inp.value||"").trim().slice(0,40);
+    if(!r||!norm(v)){inp.focus();return}
+    const name=pretty(v); if(owns(r,name)){toast(`${r.name} already has ${name}`);return}
+    r.champs.push({c:name,r:4,a:0,s:0}); touch(k); renderAll(); renderCounts(); toast(`Added ${name} to ${r.name} — set its rank and ascension`); return;}
+});
+$("members").addEventListener("keydown",e=>{const inp=e.target.closest("[data-addin]"); if(inp&&e.key==="Enter"){e.preventDefault(); inp.parentElement.querySelector("[data-add]").click();}});
+function renderAll(){
+  const all=allRosters(); const list=Object.entries(all).sort((a,b)=>((a[1].bg||9)-(b[1].bg||9))||a[1].name.localeCompare(b[1].name));
+  const fk=norm($("allFilter").value);
+  const fc=$("fClass").value, fr=$("fRank").value, fa=$("fAsc").value;
+  const filtering=!!(fc||fr||fa);
+  $("fClear").hidden=!filtering&&!fk;
+  const pass=x=>(!fc||classOf(x.c)===fc)&&(!fr||x.r===+fr)&&(!fa||(fa==="any"?x.a>0:x.a===+fa));
+  const nChamps=list.reduce((n,[,r])=>n+r.champs.length,0);
+  let nMatch=0,mMatch=0; if(filtering) list.forEach(([,r])=>{const c=r.champs.filter(pass).length; nMatch+=c; if(c) mMatch++;});
+  $("allSub").textContent=filtering?`${nMatch} champion${nMatch===1?"":"s"} match across ${mMatch} member${mMatch===1?"":"s"}`:`${list.length} member${list.length===1?"":"s"} · ${nChamps} champions logged`;
+  $("warStrip").innerHTML=BGS.map(bg=>{const a=analyzeBg(bg);const bad=a.dupes.length;return `<span class="ws${bad?" bad":a.filled===maxBg()?" ok":""}">BG ${bg} <b>${a.filled}/${maxBg()}</b>${bad?` · ${bad} dupe${bad>1?"s":""}`:""}</span>`}).join("");
+  const el=$("members");
+  if(!list.length){el.innerHTML=`<div class="empty">No rosters yet. Paste roster codes from LINE on the right.</div>`}
+  else el.innerHTML=list.map(([k,r])=>{
+    const cs=r.champs.filter(pass).sort(better);
+    if(filtering&&!cs.length) return "";
+    const chips=cs.map(x=>{const on=placedAt(k,x.c); const dd=on&&(analyzeBg(on.bg).map[norm(x.c)]||[]).length>1; const cl=classOf(x.c); return `<button type="button" class="chip pickable${fk&&norm(x.c)===fk?" hit":""}${on?" on":""}${dd?" dupe":""}" data-m="${esc(k)}" data-c="${esc(x.c)}" aria-pressed="${!!on}" title="${on?`On war · BG ${on.bg} — tap to remove`:"Tap to assign to war"}"><i class="cdot c-${cl.toLowerCase()}" title="${cl}"></i>${on?"✓ ":""}${esc(x.c)}<small>R${x.r}·${x.a?`A${x.a}`:"no asc"}·${x.s}</small></button>`}).join("")||`<span class="muted">No champions</span>`;
+    const when=new Date(r.at).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    const onWar=cs.filter(x=>placedAt(k,x.c)).map(x=>x.c);
+    const match=fk?owns(r,fk):null;
+    const open=openMembers.has(k)||!!match||filtering||editing.has(k);
+    const bgSel=`<label class="bgpick">Battlegroup <select class="sel" data-bgm="${esc(k)}" aria-label="${esc(r.name)} battlegroup"><option value=""${!r.bg?" selected":""}>Not set</option>${[1,2,3].map(b=>`<option value="${b}"${+r.bg===b?" selected":""}>BG ${b}</option>`).join("")}</select></label>`;
+    return `<details class="member${match?" match":""}" data-k="${esc(k)}"${open?" open":""}>
+      <summary><span class="who"><b>${esc(r.name)}${r.you?" (you)":""}</b><span>${r.bg?`BG ${r.bg}`:"No BG"} · ${r.champs.length} champs · ${when}</span></span>
+        <span class="sumright">${filtering?`<span class="mcount">${cs.length} match</span>`:""}${onWar.length?`<span class="onwar">✓ ${esc(onWar.join(", "))}</span>`:""}${match?`<span class="chip hit">${esc(match.c)}<small>R${match.r}·${match.a?`A${match.a}`:"no asc"}</small></span>`:""}<span class="chev" aria-hidden="true">▾</span></span></summary>
+      <div class="mbody">${editing.has(k)?editList(k,r):`<div class="chips">${chips}</div>`}
+        <div class="mtools">${bgSel}<span class="actions"><button class="btn${editing.has(k)?" primary":""}" type="button" data-edit="${esc(k)}">${editing.has(k)?"Done editing":"Edit champs"}</button>${r.you?"":`<button class="btn danger" type="button" data-rm="${esc(k)}">Remove member</button>`}</span></div></div>
+    </details>`;
+  }).join("")||(filtering?`<div class="empty">No champions match these filters.</div>`:"");
+  const ow=$("owners");
+  if(!fk){ow.innerHTML=`<span class="muted">Search above to list every member who owns a champ, best first.</span>`;return}
+  const hits=list.map(([,r])=>({r,x:owns(r,fk)})).filter(h=>h.x).sort((a,b)=>better(a.x,b.x));
+  ow.innerHTML=`<div class="muted" style="font-size:12px">${esc(CANON[fk]||$("allFilter").value)}</div>`+(hits.length?hits.map(h=>`<div class="line"><span>${esc(h.r.name)} <span class="muted">${h.r.bg?`BG ${h.r.bg}`:""}</span></span><span class="mono" style="font-size:12px">${champLabel(h.x)}</span></div>`).join(""):`<span class="muted">Nobody has logged this champ yet.</span>`);
+}
+
+/* =================== WAR PLAN =================== */
+const slotId=(bg,i)=>`bg${bg}-p${String(i+1).padStart(2,"0")}`;
+function emptySlot(bg,i){return {bg,idx:i,player:"",champs:["","","","",""],node:"",note:""}}
+function sample(){
+  const s={};
+  BGS.forEach(bg=>{for(let i=0;i<PLAYERS;i++) s[slotId(bg,i)]=emptySlot(bg,i)});
+  [["Example A",["Hulkling","Spot","Korg","Wiccan","Bishop"],"10","Hazard Shift"],
+   ["Example B",["Absorbing Man","Doctor Doom","Thing","Domino","Nova"],"9",""],
+   ["Example C",["Serpent","Onslaught","7★ Doom","Mister Negative","Tigra"],"9",""],
+   ["Example D",["Sasquatch","Nimrod","Dragon Man","Photon","Isophyne"],"",""]]
+  .forEach(([p,c,n,no],i)=>{s[slotId(1,i)]={bg:1,idx:i,player:p,champs:c.slice(),node:n,note:no}});
+  return s;
+}
+let state={}; BGS.forEach(bg=>{for(let i=0;i<PLAYERS;i++) state[slotId(bg,i)]=emptySlot(bg,i)});
+let activeBg=1;
+try{const t=localStorage.getItem("wdp-tab"); if(t&&[1,2,3].includes(+t)) activeBg=+t;}catch(e){}
+const maxBg=()=>PLAYERS*per();
+
+function analyzeBg(bg){
+  const map={}; let filled=0; const nodes={};
+  for(let i=0;i<PLAYERS;i++){
+    const s=state[slotId(bg,i)];
+    for(let col=0;col<per();col++){
+      const c=s.champs[col]; const k=norm(c); if(!k) continue; filled++;
+      (map[k]=map[k]||[]).push({i,col,player:s.player||`Slot ${i+1}`,raw:c});
+    }
+    if(mode==="one"){const n=String(s.node||"").trim(); if(n) (nodes[n]=nodes[n]||[]).push({i,player:s.player||`Slot ${i+1}`});}
+  }
+  const unique=Object.keys(map).length;
+  const dupes=Object.entries(map).filter(([,v])=>v.length>1).map(([k,v])=>({key:k,name:pretty(v[0].raw),list:v}));
+  const dupeCells=new Set(); dupes.forEach(d=>d.list.forEach(x=>dupeCells.add(`${x.i}-${x.col}`)));
+  const clashes=Object.entries(nodes).filter(([,v])=>v.length>1).map(([n,v])=>({node:n,list:v}));
+  const clashRows=new Set(); clashes.forEach(c=>c.list.forEach(x=>clashRows.add(x.i)));
+  let noNode=0;
+  if(mode==="one") for(let i=0;i<PLAYERS;i++){const s=state[slotId(bg,i)]; if(norm(s.champs[0])&&!String(s.node||"").trim()) noNode++;}
+  const notOwned=[];
+  for(let i=0;i<PLAYERS;i++){const s=state[slotId(bg,i)]; const r=rosterFor(s.player); if(!r) continue;
+    for(let col=0;col<per();col++){const c=s.champs[col]; if(norm(c)&&!owns(r,c)) notOwned.push({i,col,player:s.player,c:pretty(c)});}}
+  const notOwnedCells=new Set(notOwned.map(x=>`${x.i}-${x.col}`));
+  return {map,unique,filled,dupes,dupeCells,clashes,clashRows,noNode,notOwned,notOwnedCells,wasted:filled-unique,empty:maxBg()-filled};
+}
+
+const rowsEl=$("rows");
+function buildRows(){
+  rowsEl.classList.toggle("one",mode==="one");
+  let h;
+  if(mode==="one"){
+    h=`<div class="colhead"><span></span><span>Member</span><span>Defender</span><span>Node</span><span>Node note</span></div>`;
+    for(let i=0;i<PLAYERS;i++) h+=`<div class="row" data-i="${i}"><span class="num">${i+1}</span>
+      <div class="pcell"><input class="pname" id="p-${i}" data-i="${i}" data-f="player" list="memberList" placeholder="Member ${i+1}" autocomplete="off" aria-label="Member ${i+1} name"></div>
+      <div class="cell"><input id="c-${i}-0" data-i="${i}" data-f="0" list="champList" placeholder="Defender" autocomplete="off" aria-label="Member ${i+1} defender"><span class="flag" hidden>DUPE</span></div>
+      <div class="cell"><input class="nodein" id="n-${i}" data-i="${i}" data-f="node" inputmode="numeric" placeholder="#" autocomplete="off" aria-label="Member ${i+1} node number"><span class="flag" hidden>SAME</span></div>
+      <div class="cell notecell"><input id="t-${i}" data-i="${i}" data-f="note" placeholder="e.g. Boss, lane 3 choke" autocomplete="off" aria-label="Member ${i+1} node note"></div></div>`;
+  } else {
+    h=`<div class="colhead"><span></span><span>Member</span><span>Def 1</span><span>Def 2</span><span>Def 3</span><span>Def 4</span><span>Def 5</span></div>`;
+    for(let i=0;i<PLAYERS;i++){
+      h+=`<div class="row" data-i="${i}"><span class="num">${i+1}</span><div class="pcell"><input class="pname" id="p-${i}" data-i="${i}" data-f="player" list="memberList" placeholder="Member ${i+1}" autocomplete="off" aria-label="Member ${i+1} name"></div>`;
+      for(let c=0;c<DEF;c++) h+=`<div class="cell"><input id="c-${i}-${c}" data-i="${i}" data-f="${c}" list="champList" placeholder="—" autocomplete="off" aria-label="Member ${i+1} defender ${c+1}"><span class="flag" hidden>DUPE</span></div>`;
+      h+=`</div>`;
+    }
+  }
+  rowsEl.innerHTML=h;
+}
+
+// One datalist per member roster, so a defender box suggests only what that member owns.
+let ownListId={};
+function refreshOwnLists(){
+  const all=allRosters(); ownListId={}; let h="", n=0;
+  Object.entries(all).forEach(([k,r])=>{const id=`own-${n++}`; ownListId[k]=id;
+    h+=`<datalist id="${id}">${r.champs.slice().sort(better).map(x=>`<option value="${esc(x.c)}" label="${champLabel(x)}"></option>`).join("")}</datalist>`;});
+  $("ownLists").innerHTML=h;
+  $("memberList").innerHTML=Object.values(all).sort((a,b)=>a.name.localeCompare(b.name)).map(r=>`<option value="${esc(r.name)}" label="${r.bg?`BG ${r.bg}`:""}"></option>`).join("");
+  renderPlanIfVisible();
+}
+
+function renderModeText(){
+  const one=mode==="one";
+  $("modeFive").setAttribute("aria-pressed",!one); $("modeOne").setAttribute("aria-pressed",one);
+  $("ruleMax").textContent= one?"10 defenders per BG → 300 max per BG, 900 alliance-wide.":"50 defenders per BG → 1,500 max per BG, 4,500 alliance-wide.";
+}
+
+let lookupKey="";
+function render(){
+  let total=0,lostTotal=0,emptyTotal=0,noNodeTotal=0,clashTotal=0;
+  const res={};
+  BGS.forEach(bg=>{const a=analyzeBg(bg);res[bg]=a;total+=a.unique*PTS;lostTotal+=a.wasted*PTS;emptyTotal+=a.empty;noNodeTotal+=a.noNode;clashTotal+=a.clashes.length});
+  const M=maxBg();
+  $("totalPts").innerHTML=`${fmt(total)} <small>/ ${fmt(M*PTS*3)}</small>`;
+  const tl=$("totalLost");
+  if(lostTotal>0){tl.className="lost bad";tl.textContent=`−${lostTotal} pts lost to duplicates`}
+  else if(clashTotal>0){tl.className="lost bad";tl.textContent=`${clashTotal} node${clashTotal>1?"s":""} double-booked`}
+  else if(emptyTotal>0){tl.className="lost";tl.textContent=`${emptyTotal} defender${emptyTotal>1?"s":""} still unassigned`}
+  else if(noNodeTotal>0){tl.className="lost";tl.textContent=`${noNodeTotal} defender${noNodeTotal>1?"s":""} still need a node`}
+  else {tl.className="lost ok";tl.textContent="Fully diverse — max diversity"}
+
+  document.querySelectorAll(".bgcell").forEach(b=>{
+    const bg=+b.dataset.bg,a=res[bg];
+    const probs=a.dupes.length+a.clashes.length;
+    const pill=probs?`<span class="pill bad">${probs} issue${probs>1?"s":""}</span>`
+      :(a.unique===M&&!a.noNode?`<span class="pill ok">clean</span>`:`<span class="pill warn">${a.empty?a.empty+" open":a.noNode+" no node"}</span>`);
+    b.innerHTML=`<span class="bgname">BG ${bg} ${pill}</span><span class="meter ${a.unique===M?"full":""}"><i style="width:${a.unique/M*100}%"></i></span><span class="bgstats"><span>${a.unique}/${M} unique</span><span>${fmt(a.unique*PTS)} pts</span></span>`;
+    b.classList.toggle("active",bg===activeBg); b.setAttribute("aria-pressed",bg===activeBg);
+  });
+
+  const a=res[activeBg];
+  $("boardTitle").textContent=`Battlegroup ${activeBg}`;
+  $("boardSub").textContent=`${a.filled} of ${M} defenders set · ${a.unique} unique · ${fmt(a.unique*PTS)} / ${fmt(M*PTS)} pts`;
+  const active=document.activeElement;
+  const setVal=(el,v)=>{if(el!==active) el.value=v||"";};
+  for(let i=0;i<PLAYERS;i++){
+    const s=state[slotId(activeBg,i)];
+    setVal($(`p-${i}`),s.player);
+    const r=rosterFor(s.player); const listId=r?ownListId[nameKey(s.player)]:null;
+    $(`p-${i}`).title=r?`${r.champs.length} champs on file${r.bg?` · BG ${r.bg}`:""}`:"";
+    for(let c=0;c<per();c++){
+      const inp=$(`c-${i}-${c}`);
+      setVal(inp,s.champs[c]);
+      inp.setAttribute("list",listId||"champList");
+      const d=a.dupeCells.has(`${i}-${c}`), no=a.notOwnedCells.has(`${i}-${c}`);
+      inp.classList.toggle("dupe",d); inp.classList.toggle("notown",!d&&no);
+      const fl=inp.nextElementSibling; fl.hidden=!(d||no); fl.textContent=d?"DUPE":"NOT OWNED"; fl.classList.toggle("own",!d&&no);
+      inp.classList.toggle("hit",!!lookupKey&&norm(inp.value)===lookupKey);
+      const k=norm(inp.value); const o=r&&k?owns(r,inp.value):null;
+      inp.title=o?`${o.c} · ${champLabel(o)}`:(k&&CANON[k]&&CANON[k]!==inp.value?`Matches ${CANON[k]}`:"");
+    }
+    if(mode==="one"){
+      const n=$(`n-${i}`); setVal(n,s.node);
+      const cl=a.clashRows.has(i); n.classList.toggle("clash",cl); n.nextElementSibling.hidden=!cl;
+      setVal($(`t-${i}`),s.note);
+    }
+  }
+  $("conflictTitle").textContent=`Problems in BG ${activeBg}`;
+  const items=[];
+  a.dupes.forEach(d=>items.push(`<li><b>${esc(d.name)} ×${d.list.length}</b><span>${d.list.map(x=>esc(x.player)).join(", ")} — keep one, swap the rest (−${(d.list.length-1)*PTS} pts)</span></li>`));
+  a.clashes.forEach(c=>items.push(`<li><b>Node ${esc(c.node)} double-booked</b><span>${c.list.map(x=>esc(x.player)).join(", ")} — only one defender fits a node</span></li>`));
+  a.notOwned.forEach(x=>items.push(`<li style="border-color:var(--brass)"><b>${esc(x.player)} doesn’t list ${esc(x.c)}</b><span>Not in their roster — check with them or pick one they own.</span></li>`));
+  if(mode==="one"&&a.noNode) items.push(`<li style="border-color:var(--brass)"><b>${a.noNode} without a node</b><span>Add a node number so they know where to place.</span></li>`);
+  $("conflicts").innerHTML=items.length?items.join(""):`<li style="border-color:var(--ok)"><b>None</b><span>Every placed defender in this BG is unique${mode==="one"?" and on its own node":""}.</span></li>`;
+  renderLookup(res);
+}
+
+function renderLookup(res){
+  const el=$("lookupRes");
+  if(!lookupKey){el.innerHTML=`<span class="muted">Checks all three battlegroups, and who in the alliance owns it.</span>`;return}
+  const name=CANON[lookupKey]||$("lookup").value;
+  let h=`<div class="muted" style="font-size:12px">${esc(name)}</div>`+BGS.map(bg=>{
+    const hits=res[bg].map[lookupKey]||[];
+    const tag=hits.length===0?`<span class="pill ok">open</span>`:hits.length===1?`<span class="pill warn">taken</span>`:`<span class="pill bad">×${hits.length}</span>`;
+    return `<div class="line"><span>BG ${bg}${hits.length?` · <span class="muted">${hits.map(x=>esc(x.player)).join(", ")}</span>`:""}</span>${tag}</div>`;
+  }).join("");
+  const own=Object.values(allRosters()).map(r=>({r,x:owns(r,lookupKey)})).filter(o=>o.x).sort((p,q)=>better(p.x,q.x));
+  h+=`<div class="muted" style="font-size:12px;margin-top:6px">Owned by ${own.length} member${own.length===1?"":"s"}</div>`;
+  h+=own.slice(0,8).map(o=>`<div class="line"><span>${esc(o.r.name)} <span class="muted">${o.r.bg?`BG ${o.r.bg}`:""}</span></span><span class="mono" style="font-size:12px">${champLabel(o.x)}</span></div>`).join("");
+  el.innerHTML=h;
+}
+$("lookup").addEventListener("input",e=>{lookupKey=norm(e.target.value);render()});
+
+function assign(s,f,v){if(f==="player")s.player=v;else if(f==="node")s.node=v;else if(f==="note")s.note=v;else s.champs[+f]=v;}
+rowsEl.addEventListener("input",e=>{
+  const t=e.target; if(!t.dataset.f) return;
+  if(t.dataset.f==="node") t.value=t.value.replace(/[^0-9]/g,"").slice(0,3);
+  assign(state[slotId(activeBg,+t.dataset.i)],t.dataset.f,t.value); render();
+});
+rowsEl.addEventListener("change",e=>{
+  const t=e.target; if(!t.dataset.f) return;
+  const s=state[slotId(activeBg,+t.dataset.i)], f=t.dataset.f;
+  let v=t.value.trim();
+  if(/^\d$/.test(f)){const c=CANON[norm(v)]; const tagged=/^(\d\s*(\*|★|⭐)|r\d+)\s*|\s(\d\s*(\*|★|⭐)|r\d+)$/i.test(v); if(c&&!tagged) v=c;}
+  if(f==="player"){const r=rosterFor(v); if(r) v=r.name;}
+  t.value=v; assign(s,f,v); savePlan(); render();
+});
+document.querySelectorAll(".bgcell").forEach(b=>b.addEventListener("click",()=>{
+  activeBg=+b.dataset.bg; try{localStorage.setItem("wdp-tab",activeBg)}catch(e){}
+  $("copyFallback").hidden=true; render();
+}));
+function setMode(m){mode=m;try{localStorage.setItem("wdp-mode",m)}catch(e){} buildRows();renderModeText();if(view==="plan")$("intro").textContent=INTRO.plan();render();}
+document.querySelectorAll(".segbtn").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.mode!==mode)setMode(b.dataset.mode)}));
+
+const actions=$("actions");
+$("clearBtn").addEventListener("click",()=>{
+  const bar=document.createElement("div"); bar.className="confirm";
+  bar.innerHTML=`<span>Clear all of BG ${activeBg}?</span><button class="btn danger" type="button" id="yesClear">Clear it</button><button class="btn" type="button" id="noClear">Cancel</button>`;
+  actions.hidden=true; actions.after(bar);
+  const done=()=>{bar.remove();actions.hidden=false};
+  bar.querySelector("#noClear").onclick=done;
+  bar.querySelector("#yesClear").onclick=()=>{for(let i=0;i<PLAYERS;i++) state[slotId(activeBg,i)]=emptySlot(activeBg,i); savePlan(); done(); render(); toast(`BG ${activeBg} cleared`);};
+});
+$("fillBtn").addEventListener("click",()=>{
+  const inBg=Object.values(allRosters()).filter(r=>+r.bg===activeBg);
+  if(!inBg.length){toast(`No rosters list BG ${activeBg} yet`);return}
+  const present=new Set(); for(let i=0;i<PLAYERS;i++) present.add(nameKey(state[slotId(activeBg,i)].player));
+  let added=0, full=0;
+  inBg.sort((a,b)=>a.name.localeCompare(b.name)).forEach(r=>{
+    if(present.has(nameKey(r.name))) return;
+    let slot=-1; for(let i=0;i<PLAYERS;i++){if(!state[slotId(activeBg,i)].player.trim()){slot=i;break}}
+    if(slot<0){full++;return}
+    state[slotId(activeBg,slot)].player=r.name; present.add(nameKey(r.name)); added++;
+  });
+  savePlan(); render();
+  toast(added?`Added ${added} member${added>1?"s":""} to BG ${activeBg}${full?` — ${full} didn’t fit`:""}`:`Everyone in BG ${activeBg} is already listed`);
+});
+
+function defDetail(player,champ){
+  const r=rosterFor(player); const x=r?owns(r,champ):null;
+  return x?` (R${x.r}${x.a?`·A${x.a}`:""})`:"";
+}
+function bgBlock(bg){
+  const a=analyzeBg(bg);
+  const rows=[];
+  for(let i=0;i<PLAYERS;i++){const s=state[slotId(bg,i)]; const champs=s.champs.slice(0,per()).map(c=>c.trim()).filter(Boolean); if(!s.player.trim()&&!champs.length) continue; rows.push({s,champs});}
+  const assigned=rows.filter(r=>r.champs.length).length;
+  let t=`━━ BG ${bg} ━━  ${assigned}/${PLAYERS} members assigned\n`;
+  if(!rows.length) return t+"(no members yet)\n";
+  rows.forEach(r=>{
+    const list=r.champs.map(c=>c+defDetail(r.s.player,c)+((a.map[norm(c)]||[]).length>1?" ⚠️":"")).join(", ");
+    t+=`${r.s.player||"(no member)"} → ${list||"not assigned yet"}\n`;
+  });
+  if(a.dupes.length) t+=`⚠️ Duplicate: ${a.dupes.map(d=>`${d.name} (${d.list.map(x=>x.player).join(", ")})`).join("; ")}\n`;
+  return t;
+}
+function lineText(bgs){
+  let uniq=0; bgs.forEach(bg=>uniq+=analyzeBg(bg).unique);
+  let t=`⚔️ WAR DEFENSE${bgs.length===1?` · BG ${bgs[0]}`:""} ⚔️\nDiversity: ${uniq}/${maxBg()*bgs.length} unique · ${fmt(uniq*PTS)} pts\n`;
+  bgs.forEach(bg=>{t+="\n"+bgBlock(bg)});
+  return t.trim()+"\n";
+}
+$("copyAllBtn").addEventListener("click",()=>copyText(lineText(BGS),"All 3 BGs copied — paste it in your LINE group"));
+$("allWarCopy").addEventListener("click",()=>copyText(lineText(BGS),"War plan copied — paste it in your LINE group"));
+$("copyBtn").addEventListener("click",()=>copyText(lineText([activeBg]),`BG ${activeBg} copied — paste it in your LINE group`));
+
+/* plan storage + codes */
+const str=(v,n)=>typeof v==="string"?v.slice(0,n):(typeof v==="number"?String(v).slice(0,n):"");
+function savePlan(){store("wdp-local",state);if(window.__dirty)window.__dirty()}
+function loadInto(obj){
+  BGS.forEach(bg=>{for(let i=0;i<PLAYERS;i++){const id=slotId(bg,i);const v=obj&&obj[id]; const s=emptySlot(bg,i);
+    if(v&&typeof v==="object"){s.player=str(v.player,40); if(Array.isArray(v.champs)) for(let c=0;c<DEF;c++) s.champs[c]=str(v.champs[c],40); s.node=str(v.node,3).replace(/[^0-9]/g,""); s.note=str(v.note,60);}
+    state[id]=s;}});
+}
+function makeCode(){
+  const rows=[];
+  BGS.forEach(bg=>{for(let i=0;i<PLAYERS;i++){const s=state[slotId(bg,i)]; if(s.player||s.champs.some(Boolean)||s.node||s.note) rows.push([bg,i,s.player,s.champs,s.node,s.note]);}});
+  return "WDP2:"+b64e(JSON.stringify({m:mode,r:rows}));
+}
+function readCode(code){
+  const m=String(code).replace(/\s+/g,"").match(/WDP([12]):([A-Za-z0-9+/=]+)/);
+  if(!m) throw new Error("That doesn’t look like a plan code — it should start with WDP1: or WDP2:");
+  let data; try{data=JSON.parse(b64d(m[2]))}catch(e){throw new Error("The code is incomplete. Copy the whole thing and try again.")}
+  const obj={}; let md;
+  if(m[1]==="1"){
+    if(!Array.isArray(data)) throw new Error("The code is incomplete. Copy the whole thing and try again.");
+    data.forEach(r=>{if(!Array.isArray(r))return;const bg=+r[0],i=+r[1]; if(BGS.includes(bg)&&i>=0&&i<PLAYERS) obj[slotId(bg,i)]={player:r[2],champs:r.slice(3,3+DEF)};}); md="five";
+  } else {
+    if(!data||!Array.isArray(data.r)) throw new Error("The code is incomplete. Copy the whole thing and try again.");
+    data.r.forEach(r=>{if(!Array.isArray(r))return;const bg=+r[0],i=+r[1]; if(BGS.includes(bg)&&i>=0&&i<PLAYERS) obj[slotId(bg,i)]={player:r[2],champs:Array.isArray(r[3])?r[3]:[],node:r[4],note:r[5]};});
+    md=data.m==="one"?"one":"five";
+  }
+  return {obj,md};
+}
+$("shareBtn").addEventListener("click",()=>copyText(makeCode(),"Plan code copied — send it in your LINE group"));
+const loadBox=$("loadBox");
+$("loadBtn").addEventListener("click",()=>{loadBox.hidden=false;$("loadErr").textContent="";$("loadText").focus()});
+$("loadCancel").addEventListener("click",()=>{loadBox.hidden=true;$("loadText").value=""});
+$("loadGo").addEventListener("click",()=>{
+  try{const {obj,md}=readCode($("loadText").value);loadInto(obj);savePlan();loadBox.hidden=true;$("loadText").value="";setMode(md);toast("Plan loaded");}
+  catch(e){$("loadErr").textContent=e.message}
+});
+
+/* =================== TABS =================== */
+let view="plan";
+const INTRO={
+  plan:()=>mode==="one"
+    ?"One defender per member this war. Give each member a defender and the node to place it on. The planner flags duplicates, double-booked nodes, and champs a member doesn’t own."
+    :"Assign each member five defenders per battlegroup. Every unique champion in a BG earns 30 points; a repeat in the same BG earns nothing, at any rarity.",
+  mine:()=>"List your best 7★ champions with rank, ascension and signature level, then send your roster code in the alliance LINE group.",
+  all:()=>"Paste members’ roster codes here to see who owns what. The war plan uses these rosters to suggest defenders and catch mistakes."
+};
+function renderCounts(){
+  $("mineCount").textContent=mine.champs.length?String(mine.champs.length):"";
+  const n=Object.keys(allRosters()).length; $("allCount").textContent=n?String(n):"";
+}
+function renderPlanIfVisible(){if(view==="plan")render()}
+function setView(v){
+  view=v;
+  ["plan","mine","all"].forEach(x=>{$(`view-${x}`).hidden=x!==v; $(`tab-${x}`).setAttribute("aria-selected",x===v); $(`tab-${x}`).tabIndex=x===v?0:-1;});
+  $("segWrap").hidden=v!=="plan";
+  $("intro").textContent=INTRO[v]();
+  $("copyFallback").hidden=true;
+  if(v==="plan"){refreshOwnLists();render()} else if(v==="mine") renderMine(); else renderAll();
+  try{localStorage.setItem("wdp-view",v)}catch(e){}
+  if(window.__placeReader) window.__placeReader(v);
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setView(t.dataset.view)));
+document.querySelector(".tabs").addEventListener("keydown",e=>{
+  if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
+  const order=["plan","mine","all"]; let i=order.indexOf(view); i=(i+(e.key==="ArrowRight"?1:2))%3; setView(order[i]); $(`tab-${order[i]}`).focus();
+});
+
+
+/* =================== BACKUP =================== */
+let dirty=false;
+window.__dirty=()=>{markDirty(); if(window.__ghDirty) window.__ghDirty();};
+function markDirty(){dirty=true; try{localStorage.setItem("wdp-dirty","1")}catch(e){} renderBackup();}
+function backupCode(){return "WDB1:"+b64e(JSON.stringify({v:1,at:Date.now(),mine,rosters,plan:state,mode}))}
+function renderBackup(){
+  let last=null; try{last=+localStorage.getItem("wdp-lastbackup")||null; dirty=localStorage.getItem("wdp-dirty")==="1"}catch(e){}
+  const n=Object.keys(allRosters()).length;
+  $("bkStatus").innerHTML=last?`Last backup: <b>${new Date(last).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</b>${dirty?` · <span style="color:var(--bad)">changes since then</span>`:" · up to date"}`:`<span style="color:var(--bad)">No backup yet</span> — ${n} roster${n===1?"":"s"} only saved in this browser.`;
+}
+function doneBackup(){try{localStorage.setItem("wdp-lastbackup",String(Date.now()));localStorage.setItem("wdp-dirty","0")}catch(e){} dirty=false; renderBackup();}
+$("bkCopy").addEventListener("click",()=>{
+  const code=backupCode();
+  try{navigator.clipboard.writeText(code).then(()=>{toast("Backup copied — paste it into LINE Keep or your Notes app");doneBackup();},()=>{showBk(code)})}catch(e){showBk(code)}
+});
+function showBk(code){const ta=$("bkText");ta.hidden=false;ta.value=code;ta.focus();ta.select();$("bkMsg").textContent="Copying was blocked — select this text and copy it, then keep it somewhere safe.";doneBackup();}
+let dl=null;
+(async()=>{try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){dl=null} $("bkFile").hidden=!dl;})();
+$("bkFile").addEventListener("click",async()=>{
+  if(!dl) return; const d=new Date(); const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  try{const r=await dl.save({filename:`war-planner-backup-${stamp}.txt`,data:backupCode()}); if(r&&r.status==="saved"){toast("Backup file saved");doneBackup();}}
+  catch(e){ if(e&&e.code==="unavailable") $("bkFile").hidden=true; else if(e&&e.code!=="cancelled"&&e.code!=="declined") toast("Couldn’t save the file — use Copy backup instead"); }
+});
+$("bkRestoreBtn").addEventListener("click",()=>{$("bkRestore").hidden=!$("bkRestore").hidden;$("bkErr").textContent="";});
+$("bkFileIn").addEventListener("change",e=>{const f=e.target.files&&e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{$("bkIn").value=String(rd.result||"");}; rd.readAsText(f);});
+$("bkGo").addEventListener("click",()=>{
+  const m=String($("bkIn").value).replace(/\s+/g,"").match(/WDB1:([A-Za-z0-9+/=]+)/);
+  if(!m){$("bkErr").textContent="That isn’t a backup — it should start with WDB1:";return}
+  let d; try{d=JSON.parse(b64d(m[1]))}catch(e){$("bkErr").textContent="The backup is incomplete. Copy the whole thing and try again.";return}
+  if(!d||typeof d!=="object"){$("bkErr").textContent="The backup is incomplete.";return}
+  const nm=cleanRoster(d.mine); if(nm) mine=nm;
+  rosters={}; Object.values(d.rosters||{}).forEach(x=>{const r=cleanRoster(x); if(r&&r.name) rosters[nameKey(r.name)]=r});
+  loadInto(d.plan||{}); saveMine(); saveRosters(); savePlan();
+  $("bkIn").value=""; $("bkRestore").hidden=true; doneBackup();
+  setMode(d.mode==="five"?"five":"one"); renderCounts(); refreshOwnLists(); renderAll();
+  toast(`Restored ${Object.keys(rosters).length} rosters and the war plan`);
+});
+try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+
+(function start(){
+  const loaded=recall("wdp-local");
+  loadInto(loaded&&typeof loaded==="object"?loaded:sample());
+  buildRows(); renderModeText(); renderCounts();
+  const h=(location.hash||"").replace("#","").toLowerCase();
+  let v=h==="roster"||h==="myroster"?"mine":h==="rosters"?"all":h==="plan"?"plan":null;
+  if(!v){try{const s=localStorage.getItem("wdp-view"); if(["plan","mine","all"].includes(s)) v=s}catch(e){}}
+  setView(v||"plan");
+  renderBackup();
+})();
+
+/* =================== GITHUB SAVE =================== */
+const GH_DEFAULT={owner:"",repo:"",branch:"main",path:"data.json"};
+const LSx={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}}};
+function ghConf(){
+  const c=Object.assign({},GH_DEFAULT);
+  const h=location.hostname, seg=location.pathname.split("/").filter(Boolean)[0]||"";
+  if(/\.github\.io$/i.test(h)){c.owner=h.split(".")[0]; c.repo=seg&&!/\.html?$/i.test(seg)?seg:`${c.owner}.github.io`;}
+  const o=LSx.get("gh-owner"), r=LSx.get("gh-repo"); if(o) c.owner=o; if(r) c.repo=r;
+  return c;
+}
+let ghSha=null, ghBusy=false, ghTimer=null, ghErr="";
+const ghToken=()=>LSx.get("gh-token")||"";
+const ghPending=()=>LSx.get("gh-pending")==="1";
+const ghApi=c=>`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${c.path}`;
+function ghHeaders(auth){const h={"Accept":"application/vnd.github+json"}; if(auth&&ghToken()) h.Authorization="Bearer "+ghToken(); return h;}
+const fmtTime=t=>new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+
+function ghStatus(){
+  const t=$("cloudText"), btn=$("cloudSave"), dot=$("sync"); const c=ghConf();
+  const at=+LSx.get("gh-at")||0;
+  btn.hidden=!ghToken(); btn.disabled=ghBusy||!ghPending(); btn.textContent=ghBusy?"Saving…":"Save now";
+  let cls="local", txt;
+  if(!c.owner||!c.repo) txt="Not connected to GitHub — saved on this device only";
+  else if(ghBusy) txt="Saving to GitHub…";
+  else if(ghErr) txt=ghErr;
+  else if(ghToken()&&ghPending()) txt="Unsaved changes — saving…";
+  else if(!ghToken()&&ghPending()) txt="Changes on this device only (view-only)";
+  else {txt=at?`Saved · ${fmtTime(at)}`:"Up to date"; cls="live";}
+  t.textContent=txt; dot.className="sync "+cls;
+  const cs=$("ghState"); if(cs){ cs.innerHTML=ghToken()?`Connected to <b>${esc(c.owner)}/${esc(c.repo)}</b> — changes save automatically.`:`Not connected. Members see the saved data automatically; officers connect a token to save.`; }
+  const d=$("ghDisconnect"); if(d) d.hidden=!ghToken();
+}
+window.__ghDirty=()=>{LSx.set("gh-pending","1"); ghErr=""; ghStatus(); clearTimeout(ghTimer); if(ghToken()) ghTimer=setTimeout(()=>ghSave(false),4000);};
+
+function sharedData(){
+  const rs=Object.assign({},rosters);
+  if(mine.name&&mine.champs.length) rs[nameKey(mine.name)]=Object.assign({},mine);
+  return {v:1,at:Date.now(),rosters:rs,plan:state,mode};
+}
+async function ghFetch(){
+  const c=ghConf(); if(!c.owner||!c.repo) throw new Error("noconf");
+  try{
+    const r=await fetch(ghApi(c)+`?ref=${encodeURIComponent(c.branch)}&t=${Date.now()}`,{headers:ghHeaders(true),cache:"no-store"});
+    if(r.status===404) return {data:null,sha:null};
+    if(!r.ok) throw new Error("api "+r.status);
+    const j=await r.json();
+    return {data:JSON.parse(b64d(String(j.content||"").replace(/\s/g,""))),sha:j.sha};
+  }catch(e){
+    if(e.message==="noconf") throw e;
+    const r=await fetch(`${c.path}?t=${Date.now()}`,{cache:"no-store"});   // GitHub Pages copy (a minute or so behind)
+    if(!r.ok) throw e;
+    return {data:await r.json(),sha:null};
+  }
+}
+function applyRemote(d){
+  rosters={}; Object.values(d.rosters||{}).forEach(x=>{const r=cleanRoster(x); if(r&&r.name) rosters[nameKey(r.name)]=r});
+  if(mine.name&&rosters[nameKey(mine.name)]&&rosters[nameKey(mine.name)].at>mine.at){ mine=cleanRoster(rosters[nameKey(mine.name)]); store("wdp-mine",mine); }
+  loadInto(d.plan||{});
+  store("wdp-rosters",rosters); store("wdp-local",state);
+  if(d.mode&&d.mode!==mode) setMode(d.mode==="five"?"five":"one"); else render();
+  renderCounts(); refreshOwnLists(); if(view==="all") renderAll(); if(view==="mine") renderMine();
+  LSx.set("gh-at",String(+d.at||Date.now()));
+}
+function mergeInto(remote){
+  // keep whichever copy of each member is newer; local war plan wins
+  (Object.values(remote.rosters||{})).forEach(x=>{const r=cleanRoster(x); if(!r||!r.name) return; const k=nameKey(r.name); if(!rosters[k]||rosters[k].at<r.at) rosters[k]=r;});
+  store("wdp-rosters",rosters);
+}
+async function ghLoad(){
+  try{
+    const {data,sha}=await ghFetch(); if(sha) ghSha=sha;
+    if(data&&!ghPending()&&(+data.at||0)>(+LSx.get("gh-at")||0)) applyRemote(data);
+    else if(data&&ghPending()&&ghToken()){ mergeInto(data); ghSave(false); }
+    ghErr="";
+  }catch(e){ if(e.message!=="noconf") ghErr="Couldn’t reach GitHub — showing this device’s copy"; }
+  ghStatus();
+}
+async function ghSave(manual){
+  if(!ghToken()){ if(manual) toast("Connect a GitHub token first (Alliance rosters → Save to GitHub)"); return; }
+  if(ghBusy) return; const c=ghConf(); if(!c.owner||!c.repo){toast("Set the GitHub owner and repo first");return}
+  ghBusy=true; clearTimeout(ghTimer); ghStatus();
+  const put=async()=>{
+    const data=sharedData();
+    const body={message:`Planner update ${new Date(data.at).toISOString()}`,content:b64e(JSON.stringify(data)),branch:c.branch};
+    if(ghSha) body.sha=ghSha;
+    const r=await fetch(ghApi(c),{method:"PUT",headers:Object.assign(ghHeaders(true),{"Content-Type":"application/json"}),body:JSON.stringify(body)});
+    return {r,data};
+  };
+  try{
+    if(!ghSha){ try{const f=await ghFetch(); ghSha=f.sha; if(f.data) mergeInto(f.data);}catch(e){} }
+    let {r,data}=await put();
+    if(r.status===409||r.status===422){ const f=await ghFetch(); ghSha=f.sha; if(f.data) mergeInto(f.data); ({r,data}=await put()); }
+    if(r.status===401||r.status===403){ ghErr="GitHub refused the token — reconnect with a new one"; throw 0; }
+    if(r.status===404){ ghErr="Repo not found — check owner/repo and token access"; throw 0; }
+    if(!r.ok){ ghErr=`Save failed (${r.status}) — will retry`; throw 0; }
+    const j=await r.json(); ghSha=j.content&&j.content.sha;
+    LSx.set("gh-pending","0"); LSx.set("gh-at",String(data.at)); ghErr="";
+    if(manual) toast("Saved to GitHub");
+  }catch(e){
+    if(!ghErr) ghErr="Couldn’t reach GitHub — will retry";
+    clearTimeout(ghTimer); ghTimer=setTimeout(()=>ghSave(false),30000);
+  }finally{ ghBusy=false; ghStatus(); }
+}
+$("cloudSave").addEventListener("click",()=>ghSave(true));
+$("ghConnect").addEventListener("click",async()=>{
+  const tok=$("ghToken").value.trim(), o=$("ghOwner").value.trim(), rp=$("ghRepo").value.trim();
+  if(o) LSx.set("gh-owner",o); if(rp) LSx.set("gh-repo",rp);
+  const c=ghConf();
+  if(!c.owner||!c.repo){$("ghMsg").textContent="Enter the GitHub owner and repo name.";return}
+  if(!tok){$("ghMsg").textContent="Paste your token first.";return}
+  $("ghMsg").textContent="Checking…";
+  try{
+    const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+tok}});
+    if(!r.ok){$("ghMsg").textContent=r.status===404?"That repo wasn’t found with this token. Check the name and that the token has access to it.":"GitHub refused the token. Make a new one and try again.";return}
+    const j=await r.json();
+    if(j.permissions&&!j.permissions.push){$("ghMsg").textContent="This token can read but not save. Give it Contents: Read and write.";return}
+    LSx.set("gh-token",tok); $("ghToken").value=""; $("ghMsg").textContent="Connected. Changes now save to GitHub.";
+    ghErr=""; await ghLoad(); if(ghPending()) ghSave(false); ghStatus();
+  }catch(e){$("ghMsg").textContent="Couldn’t reach GitHub. Check your connection.";}
+});
+$("ghDisconnect").addEventListener("click",()=>{LSx.set("gh-token",null); $("ghMsg").textContent="Disconnected on this device."; ghStatus();});
+(function(){const c=ghConf(); $("ghOwner").value=c.owner; $("ghRepo").value=c.repo;})();
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") ghLoad(); });
+ghStatus(); ghLoad();
+
+})();
+</script>
+</body>
+</html>
