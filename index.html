@@ -527,7 +527,52 @@ details.member.match{box-shadow:inset 3px 0 0 var(--brass)}
 
 
   <!-- Screenshot reader (only shown when this viewer can ask Claude) -->
+  <div class="card" id="reader" hidden>
+    <h3>Read from screenshots</h3>
+    <p class="note">Upload roster screenshots (My Champions grid or champion info screens). Claude reads each 7★ champion, and you check the results before anything is saved.</p>
+    <p class="note" id="ssWhy" style="color:var(--brass-ink)"></p>
+    <div id="ssKeyBox" hidden style="display:flex;flex-direction:column;gap:8px">
+      <div class="field"><label for="ssKey">Anthropic API key</label><input class="txt" id="ssKey" type="password" autocomplete="off" placeholder="sk-ant-…"></div>
+      <div class="field"><label for="ssModel">Model</label><input class="txt" id="ssModel" autocomplete="off"></div>
+      <div class="actions"><button class="btn primary" id="ssKeySave" type="button">Save key</button><button class="btn" id="ssKeyRemove" type="button" hidden>Remove key</button></div>
+      <span class="note" id="ssKeyMsg"></span>
+      <p class="note">Get a key at console.anthropic.com → API Keys. Each read is billed to that account (a few cents per batch of screenshots). The key stays on this device only.</p>
+    </div>
+    <div class="field" id="ssTargetWrap">
+      <label for="ssTarget">Add to</label>
+      <select class="sel" id="ssTarget"><option value="mine">My roster</option><option value="member">A member’s roster</option></select>
+    </div>
+    <div id="ssMemberFields" hidden style="display:flex;flex-direction:column;gap:10px">
+      <div class="field"><label for="ssName">Member name</label><input class="txt" id="ssName" list="memberList" autocomplete="off" placeholder="Blank = read it from the screenshot"></div>
+      <div class="field"><label for="ssBg">Battlegroup</label><select class="sel" id="ssBg"><option value="">Not sure</option><option value="1">BG 1</option><option value="2">BG 2</option><option value="3">BG 3</option></select></div>
+    </div>
+    <label class="drop" id="ssDrop" for="ssFiles">
+      <input type="file" id="ssFiles" multiple accept="image/*">
+      <span id="ssDropText"><b>Choose screenshots</b> or drop them here</span>
+    </label>
+    <div class="thumbs" id="ssThumbs"></div>
+    <div class="actions" id="ssActions">
+      <button class="btn primary" id="ssGo" type="button" disabled>Read screenshots</button>
+      <button class="btn" id="ssStop" type="button" hidden>Stop</button>
+    </div>
+    <div id="ssStatus" class="note" aria-live="polite"></div>
+    <button class="btn" id="ssKeyEdit" type="button" hidden style="align-self:flex-start">API key settings</button>
+  </div>
 
+  <section class="board" id="review" hidden aria-labelledby="reviewTitle">
+    <div class="board-head">
+      <div>
+        <h2 id="reviewTitle">Check what Claude read</h2>
+        <div class="muted" style="font-size:12.5px" id="reviewSub"></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="rvSave" type="button">Save</button>
+        <button class="btn" id="rvDiscard" type="button">Discard</button>
+      </div>
+    </div>
+    <div class="rlist" id="rvList"></div>
+    <div class="board-foot" id="rvFoot"></div>
+  </section>
   <div id="copyFallback" hidden class="card"><h3>Copy this text</h3><textarea class="copyfall" id="copyText" readonly></textarea></div>
 </div>
 <datalist id="champList"></datalist>
@@ -1203,6 +1248,233 @@ $("bkGo").addEventListener("click",()=>{
   toast(`Restored ${Object.keys(rosters).length} rosters and the war plan`);
 });
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+
+/* =================== SCREENSHOT READER (needs Claude in this view) =================== */
+(function(){
+  const card=$("reader"), review=$("review");
+  let sample=null, caps=null, files=[], ctl=null, found=[], skipped=[], target=null;
+  let state="checking";
+  const KEY=()=>{try{return localStorage.getItem("ai-key")||""}catch(e){return ""}};
+  const MODEL=()=>{try{return localStorage.getItem("ai-model")||"claude-sonnet-5"}catch(e){return "claude-sonnet-5"}};
+  const WHY={
+    nokey:"Reading screenshots uses Claude through an Anthropic API key. Paste one below (officers only) — it stays on this device.",
+    checking:"Checking whether Claude is available here…",
+    noclaude:"Screenshot reading uses Claude, so it only works when this page is opened inside Claude while signed in (claude.ai or the Claude app). It isn’t available in the downloaded copy or to viewers who aren’t signed in.",
+    noimages:"This Claude app can’t send images from pages yet. Open the page at claude.ai in a web browser to read screenshots.",
+    off:"Claude isn’t allowed for this page in this session, so screenshot reading is off. Reload the page to be asked again."
+  };
+  function setState(st){
+    state=st;
+    const ready=st==="ready";
+    $("ssWhy").textContent=ready?"":WHY[st];
+    $("ssWhy").hidden=ready;
+    ["ssTargetWrap","ssDrop","ssThumbs","ssActions"].forEach(id=>$(id).hidden=!ready);
+    $("ssKeyBox").hidden=ready; $("ssKeyEdit").hidden=!ready;
+    $("ssMemberFields").hidden=!ready||$("ssTarget").value!=="member";
+  }
+
+  function placeReader(v){
+    if(v==="plan"){card.hidden=true;review.hidden=true;return}
+    const aside=$(`view-${v}`).querySelector("aside");
+    aside.prepend(card); card.hidden=false;
+    $("ssTarget").value=v==="mine"?"mine":"member"; syncTarget();
+    if(found.length){$(`view-${v}`).prepend(review); review.hidden=false}
+  }
+  window.__placeReader=placeReader;
+
+  function syncTarget(){ $("ssMemberFields").hidden=state!=="ready"||$("ssTarget").value!=="member"; }
+  $("ssTarget").addEventListener("change",syncTarget);
+
+  function setFiles(list){
+    const ok=caps&&caps.images?caps.images.mediaTypes:["image/png","image/jpeg","image/webp"];
+    files=[...list].filter(f=>ok.includes(f.type)).slice(0,20);
+    const skippedN=list.length-files.length;
+    $("ssThumbs").innerHTML="";
+    files.forEach(f=>{const img=document.createElement("img");img.alt=f.name;img.src=URL.createObjectURL(f);$("ssThumbs").append(img)});
+    $("ssDropText").innerHTML=files.length?`<b>${files.length} screenshot${files.length>1?"s":""}</b> ready — choose again to replace`:`<b>Choose screenshots</b> or drop them here`;
+    $("ssGo").disabled=!files.length;
+    $("ssStatus").textContent=skippedN>0?`${skippedN} file${skippedN>1?"s":""} skipped — use PNG, JPEG or WebP screenshots (20 max).`:"";
+  }
+  $("ssFiles").addEventListener("change",e=>setFiles(e.target.files));
+  const drop=$("ssDrop");
+  ["dragover","dragenter"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+  ["dragleave","drop"].forEach(t=>drop.addEventListener(t,()=>drop.classList.remove("over")));
+  drop.addEventListener("drop",e=>{e.preventDefault(); if(e.dataTransfer&&e.dataTransfer.files) setFiles(e.dataTransfer.files)});
+
+  const PROMPT=`These are screenshots from the mobile game Marvel Contest of Champions (MCOC), usually of the "My Champions" roster grid. Read every 7-star champion you can see.
+
+How to read the grid:
+- Each card shows the champion name, its power (the big number, e.g. 64,556), and a class icon next to the power: red fist = Skill, green flask = Science, blue swirl/planet = Cosmic, blue circuit = Tech, yellow DNA = Mutant, purple eye = Mystic.
+- 7-star champions have 7 stars. Silver stars mean duplicated (awakened); GOLD stars mean not duplicated — gold-star champions ARE still 7-star, include them.
+- A round gold badge with a number (1, 2, 3, 4) next to the power is the ascension level. No badge = not ascended (0).
+- Rank is usually NOT shown on the grid; if you can't see "Rank 4"/"Rank 5" text, use null for rank.
+- Names like "SPIDER-MAN", "VISION", "ANT-MAN" are shared by several versions: pick the version from the picture and class icon (e.g. mystic Spider-Man with turban-like mask = Spider-Man (Pavitr Prabhakar); tech Spider-Man = Spider-Man (Stark Enhanced); science Spider-Man in classic suit = Spider-Man (Classic); black suit cosmic = Spider-Man (Symbiote); skill class with stealth suit = Spider-Man (Stealth Suit)). Mention in "note" when you had to choose a version.
+- Skip cards that are cut off so the name can't be read.
+
+For each 7-star champion report:
+- champion: the exact name from this list when it matches: ${CHAMPS.join(", ")}. If not on the list, use the name shown in the game.
+- power: the power number as an integer, or null.
+- rank: 4 or 5 only if you can actually see it, else null.
+- ascension: 0 (no badge), or 1-4 from the badge; null only if that part of the card is cut off.
+- sig: signature level 0-200 if shown, else null.
+- confidence: "high" if the name and ascension were clearly readable, else "low".
+- note: a few words on anything uncertain, else "".
+
+Also report "player": the player's in-game name shown at the top of the screen (without the [TAG]), or "".
+
+Reply with only JSON:
+{"player":"Elis3103","champions":[{"champion":"Okoye","power":62551,"rank":null,"ascension":0,"sig":null,"confidence":"high","note":""}],"skipped":[{"name":"Silk","reason":"cut off"}]}`;
+
+  const errCopy=code=>({
+    not_granted:"Claude isn’t allowed for this page, so screenshot reading is off.",
+    sampling_disabled:"Claude isn’t available on this account.",
+    rate_limited:"Too many requests just now — wait a minute and try again.",
+    badkey:"The API key was rejected.",
+    nomodel:"The model name isn’t available on this key — change it under API key settings.",
+    credit:"The API account is out of credit — add credit at console.anthropic.com.",
+    network:"Couldn’t reach Claude. Check your connection.",
+    session_expired:"Sign in to Claude again, then retry.",
+    image_rejected:"One of the screenshots couldn’t be read. Try PNG or JPEG files under 20 MB.",
+    invalid_json:"Claude’s answer came back garbled. Try again, or send fewer screenshots at once.",
+    refused:"Claude couldn’t read these screenshots. Try clearer champion info screens.",
+    empty_completion:"Nothing came back. Try clearer or fewer screenshots.",
+  }[code]||"Something went wrong reading the screenshots. Try again.");
+
+  $("ssGo").addEventListener("click",async()=>{
+    if(!files.length) return;
+    if(!KEY()){setState("nokey");return}
+    target=$("ssTarget").value==="member"?{kind:"member",name:$("ssName").value.trim().slice(0,40),bg:$("ssBg").value?+$("ssBg").value:""}:{kind:"mine"};
+    const per=Math.max(1,(caps&&caps.images&&caps.images.maxCount)||5);
+    const batches=[]; for(let i=0;i<files.length;i+=per) batches.push(files.slice(i,i+per));
+    ctl=new AbortController();
+    $("ssGo").disabled=true; $("ssStop").hidden=false;
+    found=[]; skipped=[];
+    try{
+      for(let b=0;b<batches.length;b++){
+        $("ssStatus").textContent=batches.length>1?`Reading batch ${b+1} of ${batches.length}… this can take up to a minute.`:"Reading screenshots… this can take up to a minute.";
+        const res=await callClaude(PROMPT,batches[b],ctl.signal);
+        if(target.kind==="member"&&!target.name&&res&&res.player) target.name=String(res.player).replace(/^\[[^\]]*\]\s*/,"").trim().slice(0,40);
+        const cs=res&&Array.isArray(res.champions)?res.champions:[];
+        cs.forEach(x=>{
+          const name=String(x&&x.champion||"").trim().slice(0,40); if(!norm(name)) return;
+          let r=[4,5].includes(+x.rank)?+x.rank:null; const a=x.ascension!==null&&x.ascension!==""&&[0,1,2,3,4].includes(+x.ascension)?+x.ascension:null;
+          const s=x.sig==null||x.sig===""||isNaN(+x.sig)?null:Math.max(0,Math.min(200,Math.round(+x.sig)));
+          const p=+x.power||0; let est=false;
+          if(r==null&&p>0&&a!=null){ r=(a===0&&p>=58000)||(a>=1&&p>=65000)?5:4; est=true; }
+          let note=String(x.note||"").slice(0,80); if(est) note=(note?note+" · ":"")+`rank estimated from power ${p.toLocaleString()}`;
+          const row={c:pretty(name),r,a,s,low:x.confidence!=="high"||r==null||a==null||(est&&Math.abs(p-(a===0?58000:65000))<3000),note,use:true};
+          const dup=found.find(f=>norm(f.c)===norm(row.c));
+          if(dup){ if(dup.low&&!row.low) Object.assign(dup,row); } else found.push(row);
+        });
+        (res&&Array.isArray(res.skipped)?res.skipped:[]).forEach(x=>skipped.push(`${String(x&&x.name||"?").slice(0,40)} (${String(x&&x.reason||"").slice(0,40)})`));
+      }
+      if(target.kind==="member"&&!target.name){ target.name=$("ssName").value.trim()||"New member"; }
+      if(target.kind==="member") $("ssName").value=target.name;
+      $("ssStatus").textContent=found.length?`Found ${found.length} champion${found.length>1?"s":""}. Check them above, then save.`:"No 7★ rank 4–5 champions found in these screenshots.";
+      if(found.length) showReview();
+    }catch(e){
+      if(e&&e.code==="cancelled") $("ssStatus").textContent="Stopped.";
+      else{
+        $("ssStatus").textContent=errCopy(e&&e.code);
+        if(e&&e.code==="badkey"){ try{localStorage.removeItem("ai-key")}catch(_){} setState("nokey"); $("ssKeyMsg").textContent="That API key was rejected. Paste a valid one."; }
+      }
+      if(found.length) showReview();
+    }finally{
+      $("ssGo").disabled=!files.length; $("ssStop").hidden=true; ctl=null;
+    }
+  });
+  $("ssStop").addEventListener("click",()=>ctl&&ctl.abort());
+
+  function showReview(){
+    const host=$(`view-${view}`); host.prepend(review); review.hidden=false;
+    renderReview(); review.scrollIntoView({block:"start",behavior:"smooth"});
+  }
+  function renderReview(){
+    const who=target.kind==="mine"?"your roster":`${target.name}’s roster`;
+    const n=found.filter(f=>f.use).length, needs=found.filter(f=>f.use&&(f.r==null||f.a==null)).length;
+    $("reviewSub").textContent=`${found.length} read · ${n} selected for ${who}${needs?` · ${needs} need a rank or ascension`:""}`;
+    $("rvSave").textContent=`Save ${n} to ${target.kind==="mine"?"my roster":target.name}`;
+    $("rvSave").disabled=!n||needs>0;
+    let h=`<div class="rhead rv"><span>Champion</span><span>Use</span><span>Rank</span><span>Ascension</span><span>Sig</span><span></span></div>`;
+    found.forEach((x,i)=>{
+      h+=`<div class="ritem rv${x.low?" low":""}" data-i="${i}">
+        <div><input class="txt nmin" data-k="c" value="${esc(x.c)}" list="champList" aria-label="Champion name">${x.low||x.note?`<div class="rvnote">${x.low?"Check this · ":""}${esc(x.note)}</div>`:""}</div>
+        <label class="usebox"><input type="checkbox" data-k="use"${x.use?" checked":""} aria-label="Include ${esc(x.c)}"></label>
+        <div><span class="mlabel">Rank</span><select class="sel" data-k="r" aria-label="${esc(x.c)} rank"><option value=""${x.r==null?" selected":""}>?</option><option value="4"${x.r===4?" selected":""}>Rank 4</option><option value="5"${x.r===5?" selected":""}>Rank 5</option></select></div>
+        <div><span class="mlabel">Ascension</span><select class="sel" data-k="a" aria-label="${esc(x.c)} ascension">${ascOptions(x.a,true)}</select></div>
+        <div><span class="mlabel">Sig</span><input class="txt" data-k="s" type="number" min="0" max="200" inputmode="numeric" value="${x.s==null?"":x.s}" placeholder="?" aria-label="${esc(x.c)} signature level"></div>
+        <span></span>
+      </div>`;
+    });
+    $("rvList").innerHTML=h;
+    $("rvFoot").innerHTML=skipped.length?`<span>Skipped: ${esc(skipped.join(", "))}</span>`:`<span>Rows marked “Check this” were hard to read. A “?” must be set before saving.</span>`;
+  }
+  $("rvList").addEventListener("change",e=>{
+    const row=e.target.closest(".ritem"); if(!row) return; const x=found[+row.dataset.i]; const k=e.target.dataset.k;
+    if(k==="use") x.use=e.target.checked;
+    if(k==="c"){const v=e.target.value.trim().slice(0,40); if(norm(v)) x.c=pretty(v); e.target.value=x.c;}
+    if(k==="r") x.r=e.target.value?+e.target.value:null;
+    if(k==="a") x.a=e.target.value?+e.target.value:null;
+    if(k==="s"){x.s=e.target.value===""?null:clampInt(e.target.value,0,200,0); e.target.value=x.s==null?"":x.s;}
+    renderReview();
+  });
+  $("rvDiscard").addEventListener("click",()=>{found=[];skipped=[];review.hidden=true;$("ssStatus").textContent="Discarded."});
+  $("rvSave").addEventListener("click",()=>{
+    const rows=found.filter(f=>f.use&&f.r!=null&&f.a!=null);
+    let roster;
+    if(target.kind==="mine") roster=mine;
+    else{
+      const k=nameKey(target.name);
+      if(mine.name&&nameKey(mine.name)===k) roster=mine;
+      else{ roster=rosters[k]||{name:target.name,bg:target.bg,champs:[],at:Date.now()}; if(target.bg) roster.bg=target.bg; rosters[k]=roster; }
+    }
+    let added=0,updated=0;
+    rows.forEach(x=>{const ex=owns(roster,x.c); const v={c:x.c,r:x.r,a:x.a,s:x.s==null?(ex?ex.s:0):x.s};
+      if(ex){Object.assign(ex,v);updated++} else {roster.champs.push(v);added++}});
+    roster.at=Date.now();
+    if(roster===mine) saveMine(); else saveRosters();
+    found=[];skipped=[];review.hidden=true;
+    toast(`Saved to ${roster===mine?"your roster":roster.name}: ${added} added${updated?`, ${updated} updated`:""}`);
+    $("ssStatus").textContent="Saved. Upload more screenshots any time.";
+    renderCounts(); refreshOwnLists(); if(view==="mine") renderMine(); if(view==="all") renderAll();
+  });
+
+  async function shrink(f){
+    const url=URL.createObjectURL(f);
+    try{
+      const img=await new Promise((ok,bad)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=bad;i.src=url;});
+      const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      return c.toDataURL("image/jpeg",0.85).split(",")[1];
+    } finally { URL.revokeObjectURL(url); }
+  }
+  async function callClaude(prompt,files,signal){
+    const imgs=await Promise.all(files.map(shrink));
+    let r;
+    try{
+      r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,headers:{"content-type":"application/json","x-api-key":KEY(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:MODEL(),max_tokens:8000,messages:[{role:"user",content:[...imgs.map(d=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:d}})),{type:"text",text:prompt}]}]})});
+    }catch(e){ if(e&&e.name==="AbortError") throw {code:"cancelled"}; throw {code:"network"}; }
+    if(!r.ok){
+      let msg=""; try{msg=JSON.stringify(await r.json())}catch(e){}
+      throw {code: r.status===401||r.status===403?"badkey": r.status===429||r.status===529?"rate_limited": r.status===404||/model/i.test(msg)&&r.status===400?"nomodel": /credit|billing/i.test(msg)?"credit":"upstream_error", message:msg};
+    }
+    const j=await r.json(); const text=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("");
+    const a=text.indexOf("{"), b=text.lastIndexOf("}");
+    try{ return JSON.parse(text.slice(a,b+1)); }catch(e){ throw {code:"invalid_json"}; }
+  }
+  $("ssKeySave").addEventListener("click",()=>{
+    const k=$("ssKey").value.trim(), m=$("ssModel").value.trim();
+    if(!/^sk-ant-/.test(k)){$("ssKeyMsg").textContent="That doesn’t look like an Anthropic key (it starts with sk-ant-).";return}
+    try{localStorage.setItem("ai-key",k); if(m) localStorage.setItem("ai-model",m); else localStorage.removeItem("ai-model");}catch(e){}
+    $("ssKey").value=""; $("ssKeyMsg").textContent="Saved on this device."; setState("ready");
+  });
+  $("ssKeyEdit").addEventListener("click",()=>{ $("ssModel").value=MODEL(); setState("nokey"); $("ssWhy").textContent="Replace or remove the API key for screenshot reading."; $("ssKeyRemove").hidden=!KEY(); });
+  $("ssKeyRemove").addEventListener("click",()=>{try{localStorage.removeItem("ai-key")}catch(e){} $("ssKeyMsg").textContent="Key removed from this device."; $("ssKeyRemove").hidden=true;});
+  $("ssModel").value=MODEL();
+  setState(KEY()?"ready":"nokey"); placeReader(view);
+})();
 
 (function start(){
   const loaded=recall("wdp-local");
